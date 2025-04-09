@@ -3,7 +3,7 @@ const currenciesToTrack = [ 'usd', 'aed', 'jpy', 'vnd', 'cny', 'eur', 'gbp', 'ca
 const baseCurrency = 'inr';
 const apiBaseUrl = 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1';
 const daysForHistoricalData = 30;
-const MIN_DOWNLOAD_DATE = '2024-01-01';
+const MIN_DOWNLOAD_DATE = '2024-04-01';
 const OVERLAY_CHART_MAX_CURRENCIES = 4; // Max currencies on overlay chart
 const OVERLAY_CHART_DEFAULT_CURRENCIES = ['USD', 'EUR']; // Default selection
 
