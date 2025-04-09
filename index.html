@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KonCurr</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>KonCurr</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
       tailwind.config = {
         theme: {
           extend: {
@@ -23,7 +22,7 @@
         }
       }
     </script>
-    <style type="text/tailwindcss">
+        <style type="text/tailwindcss">
         body {
             @apply font-sans bg-white text-slate-800;
         }
@@ -43,124 +42,174 @@
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
-        /* Style for download button loading state */
-        #download-button:disabled {
-             @apply opacity-50 cursor-not-allowed;
-        }
+        #download-button:disabled { @apply opacity-50 cursor-not-allowed; }
+        /* Styling for overlay chart checkboxes */
+        #overlay-checkbox-container label { @apply ml-2 text-sm text-slate-700 cursor-pointer; }
+        #overlay-checkbox-container input[type=checkbox] { @apply h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer; }
+        #overlay-checkbox-container > div { @apply flex items-center; }
 
     </style>
-</head>
-<body class="flex flex-col min-h-screen leading-relaxed">
+    </head>
+    <body class="flex flex-col min-h-screen leading-relaxed">
 
-    <header class="py-6 border-b border-slate-200">
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 class="text-2xl md:text-3xl font-semibold text-slate-900 mb-1">KonCurr</h1>
-            <p class="text-sm text-slate-600">Exchange Rates vs INR</p>
-        </div>
-    </header>
+        <header class="py-6 border-b border-slate-200">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h1
+                    class="text-2xl md:text-3xl font-semibold text-slate-900 mb-1">KonCurr</h1>
+                <p class="text-sm text-slate-600">Exchange Rates vs INR</p>
+            </div>
+        </header>
 
-    <main class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl flex-1 py-12 md:py-16">
+        <main
+            class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl flex-1 py-12 md:py-16">
 
-        <div id="main-loader" class="flex flex-col justify-center items-center py-24 text-slate-500 text-base text-center">
-            <div class="spinner mb-4"></div>
-            Loading currency data...
-        </div>
-
-        <div id="main-error" class="bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded-md text-center font-medium mt-6 text-sm max-w-3xl mx-auto" style="display: none;">
+            <div id="main-loader"
+                class="flex flex-col justify-center items-center py-24 text-slate-500 text-base text-center">
+                <div class="spinner mb-4"></div>
+                Loading currency data...
             </div>
 
-        <div id="currency-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 md:gap-8 mb-16 md:mb-20" style="display: none;">
+            <div id="main-error"
+                class="bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded-md text-center font-medium mt-6 text-sm max-w-3xl mx-auto"
+                style="display: none;"></div>
+
+            <div id="currency-grid"
+                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 md:gap-8 mb-16 md:mb-20"
+                style="display: none;"></div>
+
+            <hr id="converter-separator"
+                class="my-16 border-slate-200 max-w-3xl mx-auto"
+                style="display: none;">
+            <section id="currency-converter"
+                class="p-6 md:p-8 max-w-3xl mx-auto" style="display: none;">
+                <h2
+                    class="text-xl md:text-2xl font-semibold text-slate-700 mb-8 text-center">Currency
+                    Converter</h2>
+                <div
+                    class="flex flex-col md:flex-row md:items-end gap-4 md:gap-3">
+                    <div class="flex-grow md:flex-grow-0 md:w-48"><label
+                            for="amount"
+                            class="block text-sm font-medium text-slate-600 mb-1">Amount</label><input
+                            type="number" id="amount" name="amount" value="100"
+                            placeholder="Enter amount"
+                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></div>
+                    <div class="flex-grow"><label for="from-currency"
+                            class="block text-sm font-medium text-slate-600 mb-1">From</label><select
+                            id="from-currency" name="from-currency"
+                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></select></div>
+                    <div class="flex justify-center md:pb-2 shrink-0"><button
+                            id="swap-button" title="Swap currencies"
+                            class="p-2 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition duration-150"><svg
+                                xmlns="http://www.w3.org/2000/svg" width="20"
+                                height="20" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"><line x1="12" y1="5"
+                                    x2="12" y2="19"></line><polyline
+                                    points="19 12 12 19 5 12"></polyline></svg><svg
+                                xmlns="http://www.w3.org/2000/svg" width="20"
+                                height="20" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round"
+                                class="-mt-1"><line x1="12" y1="19" x2="12"
+                                    y2="5"></line><polyline
+                                    points="5 12 12 5 19 12"></polyline></svg></button></div>
+                    <div class="flex-grow"><label for="to-currency"
+                            class="block text-sm font-medium text-slate-600 mb-1">To</label><select
+                            id="to-currency" name="to-currency"
+                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></select></div>
+                </div>
+                <div id="conversion-result"
+                    class="mt-8 text-lg md:text-xl font-medium text-slate-800 text-center h-8">Loading
+                    rates...</div>
+            </section>
+
+            <hr id="download-separator"
+                class="my-16 border-slate-200 max-w-3xl mx-auto"
+                style="display: none;">
+            <section id="data-downloader" class="p-6 md:p-8 max-w-3xl mx-auto"
+                style="display: none;">
+                <h2
+                    class="text-xl md:text-2xl font-semibold text-slate-700 mb-8 text-center">Download
+                    Historical Data</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
+                    <div><label for="start-date"
+                            class="block text-sm font-medium text-slate-600 mb-1">Start
+                            Date</label><input type="date" id="start-date"
+                            name="start-date" required min="2024-01-01"
+                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></div>
+                    <div><label for="end-date"
+                            class="block text-sm font-medium text-slate-600 mb-1">End
+                            Date</label><input type="date" id="end-date"
+                            name="end-date" required
+                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></div>
+                    <div class="sm:col-span-1"><label for="download-currency"
+                            class="block text-sm font-medium text-slate-600 mb-1">Currency</label><select
+                            id="download-currency" name="download-currency"
+                            required
+                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></select></div>
+                    <div class="sm:col-span-1"><label
+                            for="download-base-currency"
+                            class="block text-sm font-medium text-slate-600 mb-1">Base
+                            Currency</label><select id="download-base-currency"
+                            name="download-base-currency" required
+                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></select></div>
+                    <div class="sm:col-span-2 flex justify-center mt-4"><button
+                            id="download-button"
+                            class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition duration-150 ease-in-out">Download
+                            CSV</button></div>
+                </div>
+                <div id="download-status"
+                    class="mt-6 text-sm text-center min-h-[1.25rem]"></div>
+            </section>
+
+            <hr id="overlay-separator"
+                class="my-16 border-slate-200 max-w-5xl mx-auto"
+                style="display: none;">
+            <section id="overlay-chart-section"
+                class="p-6 md:p-8 max-w-5xl mx-auto" style="display: none;">
+                <h2
+                    class="text-xl md:text-2xl font-semibold text-slate-700 mb-6 text-center">Compare
+                    Currency Trends (vs INR)</h2>
+
+                <div class="mb-6">
+                    <p class="text-sm text-slate-600 mb-3 text-center">Select
+                        2-4 currencies to compare:</p>
+                    <div id="overlay-checkbox-container"
+                        class="flex flex-wrap justify-center gap-x-6 gap-y-3">
+                        {/* Checkboxes will be populated by JS */}
+                    </div>
+                    <p id="overlay-selection-limit-msg"
+                        class="text-xs text-red-500 text-center mt-2 h-4"></p>
+                    {/* For limit message */}
+                </div>
+
+                <div
+                    class="relative h-96 md:h-[500px] bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
+                    <canvas id="overlay-chart-canvas"></canvas>
+                </div>
+
+                <div id="overlay-chart-status"
+                    class="mt-4 text-sm text-center text-slate-500 min-h-[1.25rem]">
+                    {/* Status messages appear here */}
+                </div>
+
+            </section>
+
+        </main>
+
+        <footer class="text-center py-6 mt-auto border-t border-slate-200">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <p class="text-xs text-slate-500">Currency data provided by <a
+                        href="https://github.com/fawazahmed0/exchange-api"
+                        target="_blank" rel="noopener noreferrer"
+                        class="text-primary hover:text-primary-dark hover:underline">Fawazahmed0
+                        Currency API</a>. Updated daily.</p>
             </div>
+        </footer>
 
-        <hr id="converter-separator" class="my-16 border-slate-200 max-w-3xl mx-auto" style="display: none;">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="script.js"></script>
 
-        <section id="currency-converter" class="p-6 md:p-8 max-w-3xl mx-auto" style="display: none;">
-             <h2 class="text-xl md:text-2xl font-semibold text-slate-700 mb-8 text-center">Currency Converter</h2>
-             <div class="flex flex-col md:flex-row md:items-end gap-4 md:gap-3">
-                 <div class="flex-grow md:flex-grow-0 md:w-48">
-                     <label for="amount" class="block text-sm font-medium text-slate-600 mb-1">Amount</label>
-                     <input type="number" id="amount" name="amount" value="100" placeholder="Enter amount" class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm">
-                 </div>
-                 <div class="flex-grow">
-                     <label for="from-currency" class="block text-sm font-medium text-slate-600 mb-1">From</label>
-                     <select id="from-currency" name="from-currency" class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></select>
-                 </div>
-                 <div class="flex justify-center md:pb-2 shrink-0">
-                      <button id="swap-button" title="Swap currencies" class="p-2 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition duration-150">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="-mt-1"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
-                      </button>
-                 </div>
-                 <div class="flex-grow">
-                     <label for="to-currency" class="block text-sm font-medium text-slate-600 mb-1">To</label>
-                     <select id="to-currency" name="to-currency" class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></select>
-                 </div>
-             </div>
-             <div id="conversion-result" class="mt-8 text-lg md:text-xl font-medium text-slate-800 text-center h-8">Loading rates...</div>
-        </section>
-
-        <hr id="download-separator" class="my-16 border-slate-200 max-w-3xl mx-auto" style="display: none;">
-
-        <section id="data-downloader" class="p-6 md:p-8 max-w-3xl mx-auto" style="display: none;">
-            <h2 class="text-xl md:text-2xl font-semibold text-slate-700 mb-8 text-center">Download Historical Data</h2>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
-                 
-                 <div>
-                     <label for="start-date" class="block text-sm font-medium text-slate-600 mb-1">Start Date</label>
-                     <input type="date" id="start-date" name="start-date" required min="2024-04-01"
-                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm">
-                 </div>
-
-                 
-                 <div>
-                     <label for="end-date" class="block text-sm font-medium text-slate-600 mb-1">End Date</label>
-                     <input type="date" id="end-date" name="end-date" required
-                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm">
-                 </div>
-
-                 
-                 <div class="sm:col-span-1">
-                     <label for="download-currency" class="block text-sm font-medium text-slate-600 mb-1">Currency</label>
-                     <select id="download-currency" name="download-currency" required
-                             class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm">
-                         {/* Options populated by JS */}
-                     </select>
-                 </div>
-
-                 
-                 <div class="sm:col-span-1">
-                     <label for="download-base-currency" class="block text-sm font-medium text-slate-600 mb-1">Base Currency</label>
-                     <select id="download-base-currency" name="download-base-currency" required
-                             class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm">
-                 
-                     </select>
-                 </div>
-
-                 
-                 <div class="sm:col-span-2 flex justify-center mt-4">
-                     <button id="download-button"
-                             class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition duration-150 ease-in-out">
-                         Download CSV
-                     </button>
-                 </div>
-            </div>
-
-            
-            <div id="download-status" class="mt-6 text-sm text-center min-h-[1.25rem]">
-            </div>
-        </section>
-
-    </main>
-
-    <footer class="text-center py-6 mt-auto border-t border-slate-200">
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-             <p class="text-xs text-slate-500">Currency data provided by <a href="https://github.com/fawazahmed0/exchange-api" target="_blank" rel="noopener noreferrer" class="text-primary hover:text-primary-dark hover:underline">Fawazahmed0 Currency API</a>. Updated daily.</p>
-        </div>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="./script.js"></script>
-
-</body>
+    </body>
 </html>
