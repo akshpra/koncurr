@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- Updated Title -->
+        <title>KonCurr - Market News</title>
+        <!-- Tailwind CSS CDN -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- Vue.js CDN -->
+        <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+        <!-- date-fns v3 CDN build -->
+        <script
+            src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/cdn.min.js"></script>
+        <!-- NOTE: Chart.js and adapter are not needed but kept for consistency -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script
+            src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+        <style>
+        /* Base */
+        body {
+            background-color: #ffffff;
+            color: #000000; /* Default text black */
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        [v-cloak] { display: none; }
+
+        /* Subtle focus ring */
+        input:focus, select:focus, button:focus, a:focus {
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            box-shadow: 0 0 0 2px #000000; /* Black ring */
+        }
+        /* Remove default button focus outline if using custom ring */
+        button:focus {
+            outline: none;
+        }
+         a:focus {
+             outline: none; /* Remove default if using custom ring on parent/card */
+         }
+
+
+        /* KonCurr Title Gradient */
+        .koncurr-title {
+          background: linear-gradient(to right, #4285F4, #9B59B6, #E91E63); /* Example: Blue -> Purple -> Pink */
+          -webkit-background-clip: text; /* Clip background to text (webkit) */
+          background-clip: text;         /* Clip background to text (standard) */
+          color: transparent;           /* Make text transparent */
+          /* display: inline-block; needed if parent isn't text-center or similar */
+        }
+
+        /* News Link Card Style */
+        .news-link-card {
+            display: flex;
+            align-items: center;
+            padding: 1rem; /* p-4 */
+            border: 1px solid #e5e7eb; /* border-gray-200 */
+            border-radius: 0.375rem; /* rounded-md */
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.15s ease-in-out;
+        }
+        .news-link-card:hover {
+            border-color: #d1d5db; /* border-gray-300 */
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03); /* shadow-sm */
+            background-color: #f9fafb; /* bg-gray-50 */
+        }
+        .news-link-card:focus {
+             /* Ring applied by global rule */
+             border-color: #9ca3af; /* border-gray-400 */
+        }
+
+        .news-link-icon {
+             flex-shrink: 0;
+             width: 2rem; /* w-8 */
+             height: 2rem; /* h-8 */
+             margin-right: 1rem; /* mr-4 */
+             color: #4b5563; /* text-gray-600 */
+        }
+         .news-link-card:hover .news-link-icon {
+             color: #111827; /* text-gray-900 */
+         }
+
+        .news-link-title {
+            font-weight: 500; /* font-medium */
+            color: #1f2937; /* text-gray-800 */
+        }
+        .news-link-card:hover .news-link-title {
+             color: #1d4ed8; /* text-blue-700 */
+        }
+
+        .news-link-description {
+            font-size: 0.875rem; /* text-sm */
+            color: #6b7280; /* text-gray-500 */
+            margin-top: 0.125rem; /* mt-0.5 */
+        }
+
+    </style>
+    </head>
+    <body>
+
+        <div id="app" v-cloak
+            class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+
+            <!-- Header -->
+            <header class="mb-10 text-center">
+                <h1
+                    class="text-2xl sm:text-3xl font-semibold mb-1 koncurr-title inline-block">KonCurr</h1>
+                <p class="text-sm text-gray-500">Financial News Sources</p>
+            </header>
+
+            <!-- Navigation -->
+            <nav class="mb-10">
+                <ul
+                    class="flex justify-center items-center space-x-6 sm:space-x-8 text-sm">
+                    <li>
+                        <a href="index.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Tracker</a>
+                    </li>
+                    <li>
+                        <a href="download.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Download
+                            Data</a>
+                    </li>
+                    <li>
+                        <a href="convert.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Currency
+                            Converter</a>
+                    </li>
+                    <li>
+                        <a href="compare.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Compare
+                            Currencies</a>
+                    </li>
+                    <li>
+                        <a href="news.html"
+                            class="font-medium underline decoration-2 underline-offset-4">Market
+                            News</a> <!-- Underline active -->
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- News Links Section -->
+            <section class="max-w-2xl mx-auto">
+
+                <!-- News Source Links List -->
+                <div class="space-y-4">
+                    <!-- Loop through predefined news sources -->
+                    <a v-for="source in newsSources"
+                        :key="source.id"
+                        :href="source.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="news-link-card">
+                        <!-- Generic News Icon -->
+                        <svg class="news-link-icon"
+                            xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" stroke-width="1.5"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 0 0 2.25 2.25h13.5M6 7.5h3v3H6v-3Z" />
+                        </svg>
+                        <!-- Source Info -->
+                        <div>
+                            <h2 class="news-link-title">{{ source.name }}</h2>
+                            <p class="news-link-description">{{
+                                source.description }}</p>
+                        </div>
+                    </a>
+                </div>
+
+            </section>
+
+            <!-- Footer -->
+            <footer
+                class="text-center mt-12 sm:mt-16 pt-6 border-t border-gray-100">
+                <p class="text-xs text-gray-400">Data via <a
+                        href="https://github.com/fawazahmed0/currency-api"
+                        target="_blank" rel="noopener noreferrer"
+                        class="hover:underline">fawazahmed0/currency-api</a>.</p>
+            </footer>
+        </div>
+
+        <script>
+        const { createApp, ref, onMounted } = Vue;
+        // No date-fns needed for this version, but keep Vue import
+        // const { formatDistanceToNow, parseISO, isValid, format: formatDate } = dateFns;
+
+        const app = createApp({
+            // --- DATA ---
+            setup() {
+                // Define the list of news sources directly
+                const newsSources = ref([
+                    {
+                        id: 'reuters-biz',
+                        name: 'Reuters Business',
+                        description: 'Global business and financial news.',
+                        url: 'https://www.reuters.com/business/'
+                    },
+                    {
+                        id: 'bloomberg',
+                        name: 'Bloomberg',
+                        description: 'Market coverage, data, analysis, and video.',
+                        url: 'https://www.bloomberg.com/'
+                    },
+                    {
+                        id: 'yahoo-finance',
+                        name: 'Yahoo Finance',
+                        description: 'Stock market quotes, international market data, news.',
+                        url: 'https://finance.yahoo.com/'
+                    },
+                    {
+                        id: 'wsj-markets',
+                        name: 'Wall Street Journal Markets',
+                        description: 'In-depth market news and analysis.',
+                        url: 'https://www.wsj.com/news/markets'
+                    },
+                    {
+                        id: 'cnbc',
+                        name: 'CNBC',
+                        description: 'Real-time stock market quotes and business news.',
+                        url: 'https://www.cnbc.com/world/?region=world'
+                    },
+                     {
+                         id: 'ft',
+                         name: 'Financial Times',
+                         description: 'International business, finance, economic and political news.',
+                         url: 'https://www.ft.com/'
+                     }
+                    // Add more sources as needed
+                ]);
+
+                // No loading or error state needed for static links
+                const isLoading = ref(false);
+                const errorMessage = ref(null);
+
+                // --- METHODS ---
+                // No fetch needed
+
+                // --- MOUNTED ---
+                onMounted(() => {
+                    console.log("News Links App Mounted");
+                    // No initial data fetching required
+                });
+
+                return {
+                    newsSources,
+                    isLoading, // Keep for potential future use? Or remove.
+                    errorMessage // Keep for potential future use? Or remove.
+                };
+            }
+        });
+
+        app.mount('#app');
+    </script>
+
+    </body>
+</html>

@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- Updated Title -->
+        <title>KonCurr - Download Data</title>
+        <!-- Tailwind CSS CDN -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- Vue.js CDN -->
+        <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+        <!-- date-fns v3 CDN build -->
+        <script
+            src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/cdn.min.js"></script>
+        <!-- NOTE: Chart.js and adapter are not strictly needed for download page, but included for consistency -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script
+            src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+        <style>
+        /* Base */
+        body {
+            background-color: #ffffff;
+            color: #000000; /* Default text black */
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        [v-cloak] { display: none; }
+
+        /* Simple pulse */
+        @keyframes pulse-simple {
+            50% { opacity: .6; }
+        }
+        .animate-pulse-simple {
+            animation: pulse-simple 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .placeholder {
+             background-color: #f3f4f6; /* gray-100 */
+             border-radius: 0.25rem; /* rounded-sm */
+        }
+
+        /* Subtle focus ring */
+        input:focus, select:focus, button:focus, .multi-select-input-area:focus-within {
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            box-shadow: 0 0 0 2px #000000; /* Black ring */
+        }
+        /* Remove default button focus outline if using custom ring */
+        button:focus {
+            outline: none;
+        }
+
+        /* KonCurr Title Gradient */
+        .koncurr-title {
+          background: linear-gradient(to right, #4285F4, #9B59B6, #E91E63); /* Example: Blue -> Purple -> Pink */
+          -webkit-background-clip: text; /* Clip background to text (webkit) */
+          background-clip: text;         /* Clip background to text (standard) */
+          color: transparent;           /* Make text transparent */
+          /* display: inline-block; needed if parent isn't text-center or similar */
+        }
+
+        /* Custom Multi-select Component */
+         .multi-select-container {
+             position: relative;
+         }
+
+         .multi-select-input-area {
+             display: flex;
+             flex-wrap: wrap;
+             align-items: center;
+             gap: 0.375rem; /* gap-1.5 */
+             padding: 0.5rem 0.75rem; /* py-2 px-3 */
+             border: 1px solid #d1d5db; /* border-gray-300 */
+             border-radius: 0.375rem; /* rounded-md */
+             min-height: 42px; /* Match input height */
+             cursor: text;
+             background-color: #fff; /* Ensure background */
+         }
+         .multi-select-input-area:focus-within {
+              /* Focus ring applied by global rule above */
+              border-color: #a0aec0; /* Slightly darker border on focus */
+         }
+
+
+         .multi-select-chip {
+             display: inline-flex;
+             align-items: center;
+             background-color: #e5e7eb; /* gray-200 */
+             color: #374151; /* gray-700 */
+             border-radius: 9999px; /* rounded-full */
+             padding: 0.125rem 0.625rem; /* py-0.5 px-2.5 */
+             font-size: 0.75rem; /* text-xs */
+             line-height: 1rem;
+             font-weight: 500;
+             white-space: nowrap;
+         }
+
+         .multi-select-chip button {
+             margin-left: 0.375rem; /* ml-1.5 */
+             padding: 0;
+             background: none;
+             border: none;
+             color: #6b7280; /* gray-500 */
+             cursor: pointer;
+             line-height: 1; /* Ensure 'x' aligns well */
+             font-size: 1rem; /* Make 'x' slightly larger */
+         }
+          .multi-select-chip button:hover {
+              color: #111827; /* gray-900 */
+          }
+          .multi-select-chip button:focus {
+              outline: none; /* Remove focus outline from chip button */
+              box-shadow: none;
+          }
+
+         .multi-select-search-input {
+             flex-grow: 1;
+             border: none;
+             outline: none;
+             padding: 0.125rem 0; /* Minimal padding */
+             font-size: 0.875rem; /* text-sm */
+             min-width: 80px; /* Prevent input becoming too small */
+             background-color: transparent;
+         }
+         .multi-select-search-input:focus {
+             outline: none; /* Remove focus outline from search input */
+             box-shadow: none;
+         }
+
+         .multi-select-dropdown {
+             position: absolute;
+             top: 100%;
+             left: 0;
+             right: 0;
+             z-index: 10;
+             margin-top: 0.25rem; /* mt-1 */
+             background-color: #ffffff; /* bg-white */
+             border: 1px solid #d1d5db; /* border-gray-300 */
+             border-radius: 0.375rem; /* rounded-md */
+             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-lg */
+             max-height: 15rem; /* max-h-60 */
+             overflow-y: auto;
+         }
+
+         .multi-select-option {
+             padding: 0.5rem 0.75rem; /* py-2 px-3 */
+             font-size: 0.875rem; /* text-sm */
+             cursor: pointer;
+             white-space: nowrap; /* Prevent wrapping */
+             overflow: hidden; /* Hide overflow */
+             text-overflow: ellipsis; /* Add ellipsis */
+         }
+         .multi-select-option:hover, .multi-select-option.is-highlighted {
+             background-color: #f3f4f6; /* gray-100 */
+         }
+          .multi-select-option.is-disabled {
+              opacity: 0.5;
+              cursor: not-allowed;
+          }
+    </style>
+    </head>
+    <body>
+
+        <div id="app" v-cloak
+            class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+
+            <!-- Header -->
+            <header class="mb-10 text-center">
+                <h1
+                    class="text-2xl sm:text-3xl font-semibold mb-1 koncurr-title inline-block">KonCurr</h1>
+                <p class="text-sm text-gray-500">Download historical exchange
+                    rate data</p>
+            </header>
+
+            <!-- Navigation -->
+            <nav class="mb-10">
+                <ul
+                    class="flex justify-center items-center space-x-6 sm:space-x-8 text-sm">
+                    <li>
+                        <a href="index.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Tracker</a>
+                    </li>
+                    <li>
+                        <a href="download.html"
+                            class="font-medium underline decoration-2 underline-offset-4">Download
+                            Data</a> <!-- Underline active -->
+                    </li>
+                    <li>
+                        <a href="convert.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Currency
+                            Converter</a>
+                    </li>
+                    <li>
+                        <a href="compare.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Compare
+                            Currencies</a>
+                    </li>
+                    <li>
+                        <a href="news.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Market
+                            News</a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Download Form Section -->
+            <section class="max-w-lg mx-auto">
+                <form @submit.prevent="handleDownloadRequest" class="space-y-5">
+                    <!-- Date Range -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="start-date"
+                                class="block text-xs font-medium text-gray-600 mb-1">Start
+                                Date</label>
+                            <input
+                                type="date"
+                                id="start-date"
+                                v-model="startDate"
+                                :min="minDate"
+                                :max="endDate"
+                                class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm placeholder-gray-400"
+                                required />
+                        </div>
+                        <div>
+                            <label for="end-date"
+                                class="block text-xs font-medium text-gray-600 mb-1">End
+                                Date</label>
+                            <input
+                                type="date"
+                                id="end-date"
+                                v-model="endDate"
+                                :min="startDate"
+                                :max="maxDate"
+                                class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm placeholder-gray-400"
+                                required />
+                        </div>
+                    </div>
+
+                    <!-- Base Currency -->
+                    <div>
+                        <label for="base-currency"
+                            class="block text-xs font-medium text-gray-600 mb-1">Base
+                            Currency</label>
+                        <select
+                            id="base-currency"
+                            v-model="baseCurrency"
+                            class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white appearance-none"
+                            required
+                            style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236b7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.293%207.293a1%201%200%20011.414%200L10%2010.586l3.293-3.293a1%201%200%20111.414%201.414l-4%204a1%201%200%2001-1.414%200l-4-4a1%201%200%20010-1.414z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1.25em 1.25em; padding-right: 2.5rem;">
+                            <option
+                                v-if="!availableCurrencies || Object.keys(availableCurrencies).length === 0"
+                                value disabled>Loading currencies...</option>
+                            <!-- Use sortedAvailableCurrenciesArray for consistency if needed, or keep original object iteration -->
+                            <option
+                                v-for="(name, code) in Object.fromEntries(Object.entries(availableCurrencies).sort(([, nameA], [, nameB]) => nameA.localeCompare(nameB)))"
+                                :key="code" :value="code">
+                                {{ code.toUpperCase() }} - {{ name }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Tracked Currencies (Custom Multi-Select) -->
+                    <div>
+                        <label for="tracked-currencies-search"
+                            class="block text-xs font-medium text-gray-600 mb-1">Tracked
+                            Currencies</label>
+                        <div class="multi-select-container"
+                            ref="multiSelectContainer">
+                            <div class="multi-select-input-area"
+                                @click="openDropdownAndFocusInput">
+                                <!-- Chips for selected currencies -->
+                                <span v-for="code in selectedTrackedCurrencies"
+                                    :key="code" class="multi-select-chip">
+                                    {{ code.toUpperCase() }}
+                                    <button type="button"
+                                        @click.stop="removeTrackedCurrency(code)"
+                                        :title="'Remove ' + code.toUpperCase()">
+                                        × <!-- Simple 'x' -->
+                                    </button>
+                                </span>
+                                <!-- Search Input -->
+                                <input
+                                    type="text"
+                                    id="tracked-currencies-search"
+                                    ref="multiSelectSearchInput"
+                                    v-model="searchTerm"
+                                    :placeholder="selectedTrackedCurrencies.length > 0 ? 'Add more...' : 'Search or select...'"
+                                    class="multi-select-search-input"
+                                    @focus="openDropdown"
+                                    @input="openDropdown"
+                                    @keydown.down.prevent="highlightNext"
+                                    @keydown.up.prevent="highlightPrev"
+                                    @keydown.enter.prevent="selectHighlighted"
+                                    @keydown.esc.prevent="closeDropdown"
+                                    @keydown.delete="handleBackspace"
+                                    autocomplete="off" />
+                            </div>
+                            <!-- Dropdown -->
+                            <div v-if="isDropdownOpen"
+                                class="multi-select-dropdown">
+                                <div
+                                    v-if="filteredAvailableCurrencies.length === 0"
+                                    class="multi-select-option text-gray-500 italic">
+                                    {{ searchTerm ? 'No matching currencies' :
+                                    (Object.keys(availableCurrencies).length > 0
+                                    ?
+                                    'All available currencies selected or base'
+                                    : 'Loading...') }}
+                                </div>
+                                <div
+                                    v-for="(currency, index) in filteredAvailableCurrencies"
+                                    :key="currency.code"
+                                    :class="['multi-select-option', { 'is-highlighted': index === highlightedIndex }]"
+                                    @click="selectCurrency(currency.code)"
+                                    @mouseenter="highlightedIndex = index"
+                                    :title="currency.name">
+                                    {{ currency.code.toUpperCase() }} - {{
+                                    currency.name }}
+                                </div>
+                            </div>
+                        </div>
+                        <p
+                            v-if="formSubmitted && selectedTrackedCurrencies.length === 0"
+                            class="text-xs text-red-600 mt-1">Please select at
+                            least one tracked currency.</p>
+                        <p v-else class="text-xs text-gray-500 mt-1">Search or
+                            click to select currencies to track.</p>
+                    </div>
+
+                    <!-- Submit Button & Status -->
+                    <div class="pt-2">
+                        <button
+                            type="submit"
+                            :disabled="isLoading || !isFormValid"
+                            class="w-full px-4 py-2 bg-black text-white font-medium rounded-md hover:bg-gray-800 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2">
+                            <svg v-if="isLoading"
+                                class="animate-spin h-4 w-4 text-white"
+                                xmlns="http://www.w3.org/2000/svg" fill="none"
+                                viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12"
+                                    r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>{{ isLoading ? 'Generating CSV...' :
+                                'Download CSV' }}</span>
+                        </button>
+                        <p v-if="loadingMessage"
+                            class="text-center text-xs text-gray-500 mt-2">{{
+                            loadingMessage }}</p>
+                        <p v-if="errorMessage"
+                            class="text-center text-sm text-red-600 mt-2">{{
+                            errorMessage }}</p>
+                        <p v-if="successMessage"
+                            class="text-center text-sm text-green-600 mt-2">{{
+                            successMessage }}</p>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Footer -->
+            <footer
+                class="text-center mt-12 sm:mt-16 pt-6 border-t border-gray-100">
+                <p class="text-xs text-gray-400">Data via <a
+                        href="https://github.com/fawazahmed0/currency-api"
+                        target="_blank" rel="noopener noreferrer"
+                        class="hover:underline">fawazahmed0/currency-api</a>.</p>
+            </footer>
+        </div>
+
+        <script>
+        const { createApp, ref, reactive, onMounted, computed, nextTick, onBeforeUnmount } = Vue; // Added onBeforeUnmount
+        const { format, parseISO, eachDayOfInterval, subDays, isValid } = dateFns;
+
+        const app = createApp({
+            // --- DATA using setup() ---
+            setup() {
+                const availableCurrencies = ref({});
+                const isLoading = ref(false);
+                const loadingMessage = ref('');
+                const errorMessage = ref(null);
+                const successMessage = ref(null);
+                const apiBaseUrl = 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api';
+                const apiVersion = 'v1';
+
+                // Form state
+                const minDate = ref('2024-04-01');
+                const maxDate = ref(format(subDays(new Date(), 1), 'yyyy-MM-dd'));
+                const startDate = ref(minDate.value);
+                const endDate = ref(maxDate.value);
+                const baseCurrency = ref('inr');
+                const formSubmitted = ref(false); // Track if submit was attempted
+
+                // --- Custom Multi-Select State ---
+                const selectedTrackedCurrencies = ref(['usd']); // Default selection
+                const searchTerm = ref('');
+                const isDropdownOpen = ref(false);
+                const highlightedIndex = ref(-1); // For keyboard navigation
+                const multiSelectContainer = ref(null); // Template ref for container
+                const multiSelectSearchInput = ref(null); // Template ref for search input
+
+                // --- COMPUTED ---
+                const sortedAvailableCurrenciesArray = computed(() => {
+                    return Object.entries(availableCurrencies.value)
+                        .map(([code, name]) => ({ code, name })) // Convert to array of objects
+                        .sort((a, b) => a.name.localeCompare(b.name));
+                });
+
+                // Computed property for the filtered list shown in the dropdown
+                const filteredAvailableCurrencies = computed(() => {
+                    const searchLower = searchTerm.value.toLowerCase().trim();
+                    return sortedAvailableCurrenciesArray.value.filter(currency => {
+                        // Exclude base currency and already selected currencies
+                        if (currency.code === baseCurrency.value || selectedTrackedCurrencies.value.includes(currency.code)) {
+                            return false;
+                        }
+                        // Filter by search term (check code and name)
+                        if (!searchLower) {
+                            return true; // Show all if no search term
+                        }
+                        return currency.code.toLowerCase().includes(searchLower) ||
+                               currency.name.toLowerCase().includes(searchLower);
+                    });
+                });
+
+                const isFormValid = computed(() => {
+                    // Reset error message related to tracked currencies if user selects one
+                    if (selectedTrackedCurrencies.value.length > 0 && formSubmitted.value) {
+                         // Check if the only error was the missing tracked currency
+                         if (errorMessage.value?.includes('select at least one tracked currency')) {
+                             errorMessage.value = null;
+                         }
+                    }
+
+                    return startDate.value &&
+                           endDate.value &&
+                           baseCurrency.value &&
+                           selectedTrackedCurrencies.value.length > 0 && // Check the array length
+                           isValid(parseISO(startDate.value)) &&
+                           isValid(parseISO(endDate.value));
+                });
+
+                // --- METHODS ---
+
+                // Fetch available currencies
+                const fetchAvailableCurrencies = async () => {
+                    console.log("Fetching available currencies...");
+                    // Clear existing error related to currency list loading
+                    if (errorMessage.value?.includes('Could not load currency list')) {
+                        errorMessage.value = null;
+                    }
+                    try {
+                        const url = `${apiBaseUrl}@latest/${apiVersion}/currencies.min.json`;
+                        const response = await fetch(url);
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        availableCurrencies.value = await response.json();
+                        console.log("Available currencies loaded.");
+                    } catch (error) {
+                        console.error("Error fetching available currencies:", error);
+                        errorMessage.value = "Could not load currency list. Please refresh.";
+                    }
+                };
+
+                // Generate date range
+                const generateDateRange = (start, end) => {
+                    try {
+                        const startDateObj = parseISO(start);
+                        const endDateObj = parseISO(end);
+                        if (!isValid(startDateObj) || !isValid(endDateObj) || startDateObj > endDateObj) {
+                            throw new Error("Invalid date range");
+                        }
+                        const interval = { start: startDateObj, end: endDateObj };
+                        return eachDayOfInterval(interval).map(date => format(date, 'yyyy-MM-dd'));
+                    } catch (error) {
+                         console.error("Error generating date range:", error);
+                         errorMessage.value = "Invalid start or end date selected.";
+                         return [];
+                    }
+                };
+
+                // Fetch rate for date
+                const fetchRateForDate = async (date, trackedCode, baseCode) => {
+                    const url = `${apiBaseUrl}@${date}/${apiVersion}/currencies/${trackedCode}.min.json`;
+                    try {
+                        const response = await fetch(url);
+                        if (!response.ok) {
+                            if (response.status === 404) {
+                                console.warn(`No data found for ${trackedCode.toUpperCase()} on ${date}`);
+                                return { date, trackedCode, rate: null, error: 'Not found' };
+                            }
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+                        const data = await response.json();
+                        if (data.date !== date) {
+                             console.warn(`Date mismatch for ${trackedCode.toUpperCase()}: requested ${date}, got ${data.date}`);
+                             return { date: date, trackedCode, rate: null, error: `Date mismatch (got ${data.date})` };
+                        }
+                        const rate = data[trackedCode]?.[baseCode];
+                        if (rate === undefined) {
+                            console.warn(`Base currency ${baseCode.toUpperCase()} not found in response for ${trackedCode.toUpperCase()} on ${date}`);
+                            return { date, trackedCode, rate: null, error: `Base ${baseCode.toUpperCase()} missing` };
+                        }
+                        return { date, trackedCode, rate: Number(rate), error: null };
+                    } catch (error) {
+                        console.error(`Error fetching rate for ${trackedCode.toUpperCase()} on ${date}:`, error);
+                        return { date, trackedCode, rate: null, error: error.message };
+                    }
+                };
+
+                // Download CSV
+                const downloadCSV = (csvContent, filename) => {
+                    try {
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement("a");
+                        if (link.download !== undefined) { // Feature detection
+                            const url = URL.createObjectURL(blob);
+                            link.setAttribute("href", url);
+                            link.setAttribute("download", filename);
+                            link.style.visibility = 'hidden';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(url); // Clean up
+                        } else {
+                             throw new Error("CSV download not supported by your browser.");
+                        }
+                    } catch (error) {
+                         console.error("CSV Download error:", error);
+                         errorMessage.value = error.message || "Failed to initiate CSV download.";
+                         // Ensure loading state is reset if download fails
+                         isLoading.value = false;
+                         loadingMessage.value = '';
+                    }
+                };
+
+
+                // --- Custom Multi-Select Methods ---
+                const openDropdown = () => {
+                    if (!isDropdownOpen.value) {
+                        isDropdownOpen.value = true;
+                        highlightedIndex.value = -1; // Reset highlight when opening
+                    }
+                };
+
+                const closeDropdown = () => {
+                    if (isDropdownOpen.value) {
+                        isDropdownOpen.value = false;
+                        // Don't clear search term immediately on close, maybe user wants to refine
+                        // searchTerm.value = '';
+                        highlightedIndex.value = -1;
+                    }
+                };
+
+                const openDropdownAndFocusInput = () => {
+                    openDropdown();
+                    // Use nextTick to ensure input is visible before focusing
+                    nextTick(() => {
+                        multiSelectSearchInput.value?.focus();
+                    });
+                };
+
+                const selectCurrency = (code) => {
+                    if (!selectedTrackedCurrencies.value.includes(code)) {
+                        selectedTrackedCurrencies.value.push(code);
+                    }
+                    searchTerm.value = ''; // Clear search term after selection
+                    closeDropdown(); // Close dropdown after selection
+                    // Focus the input again to allow adding more easily
+                    nextTick(() => multiSelectSearchInput.value?.focus());
+                };
+
+                const removeTrackedCurrency = (codeToRemove) => {
+                    selectedTrackedCurrencies.value = selectedTrackedCurrencies.value.filter(code => code !== codeToRemove);
+                    // Keep dropdown open potentially, or close it? User preference.
+                    // For now, keep it open if it was open.
+                    // Ensure the input stays focused if removing via chip click
+                     nextTick(() => multiSelectSearchInput.value?.focus());
+                };
+
+                // Handle Backspace key: remove last chip if search input is empty
+                const handleBackspace = () => {
+                    if (searchTerm.value === '' && selectedTrackedCurrencies.value.length > 0) {
+                        // Prevent default backspace behavior (going back a page) if input is focused
+                        // event.preventDefault(); // Might be needed depending on browser
+                        removeTrackedCurrency(selectedTrackedCurrencies.value[selectedTrackedCurrencies.value.length - 1]);
+                    }
+                };
+
+                // Keyboard navigation for dropdown
+                const highlightNext = () => {
+                    if (!isDropdownOpen.value) openDropdown();
+                    if (filteredAvailableCurrencies.value.length > 0) {
+                        highlightedIndex.value = (highlightedIndex.value + 1) % filteredAvailableCurrencies.value.length;
+                        scrollToHighlighted();
+                    }
+                };
+
+                const highlightPrev = () => {
+                     if (!isDropdownOpen.value) openDropdown();
+                    if (filteredAvailableCurrencies.value.length > 0) {
+                        highlightedIndex.value = (highlightedIndex.value - 1 + filteredAvailableCurrencies.value.length) % filteredAvailableCurrencies.value.length;
+                         scrollToHighlighted();
+                    }
+                };
+
+                const selectHighlighted = () => {
+                    if (isDropdownOpen.value && highlightedIndex.value >= 0 && highlightedIndex.value < filteredAvailableCurrencies.value.length) {
+                        selectCurrency(filteredAvailableCurrencies.value[highlightedIndex.value].code);
+                    } else if (isDropdownOpen.value && searchTerm.value && filteredAvailableCurrencies.value.length === 1) {
+                        // If only one match from search, Enter selects it even if not highlighted by arrows
+                        selectCurrency(filteredAvailableCurrencies.value[0].code);
+                    } else if (!isDropdownOpen.value && searchTerm.value) {
+                        // If dropdown closed but text entered, maybe try to match? Or just ignore. Ignoring for now.
+                    } else {
+                         // If enter pressed otherwise (e.g. empty search), maybe close dropdown?
+                         closeDropdown();
+                    }
+                };
+
+                 // Helper to scroll dropdown list for keyboard nav
+                 const scrollToHighlighted = () => {
+                     nextTick(() => {
+                         const dropdownElement = multiSelectContainer.value?.querySelector('.multi-select-dropdown');
+                         const highlightedElement = dropdownElement?.querySelector('.is-highlighted'); // More specific selector
+                         if (dropdownElement && highlightedElement) {
+                             // Use scrollIntoView for simplicity, might need adjustments based on exact layout
+                             highlightedElement.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                         }
+                     });
+                 };
+
+
+                // Click outside handler
+                const handleClickOutside = (event) => {
+                    if (multiSelectContainer.value && !multiSelectContainer.value.contains(event.target)) {
+                        closeDropdown();
+                    }
+                };
+
+                // --- Main Form Submission Logic ---
+                const handleDownloadRequest = async () => {
+                    formSubmitted.value = true; // Mark form as submitted for validation messages
+                    // Clear previous messages
+                    errorMessage.value = null;
+                    successMessage.value = null;
+                    loadingMessage.value = '';
+
+                    if (!isFormValid.value) {
+                        // Construct a more specific error message
+                        let errorParts = [];
+                        if (!startDate.value || !endDate.value || !isValid(parseISO(startDate.value)) || !isValid(parseISO(endDate.value))) errorParts.push("valid dates");
+                        if (!baseCurrency.value) errorParts.push("a base currency");
+                        if (selectedTrackedCurrencies.value.length === 0) errorParts.push("at least one tracked currency");
+
+                        errorMessage.value = `Please provide ${errorParts.join(' and ')}.`;
+
+                        // Find the first invalid field and focus it (optional enhancement)
+                        if (errorParts.includes("valid dates")) {
+                            document.getElementById('start-date')?.focus();
+                        } else if (errorParts.includes("a base currency")) {
+                             document.getElementById('base-currency')?.focus();
+                        } else if (errorParts.includes("at least one tracked currency")) {
+                             multiSelectSearchInput.value?.focus();
+                        }
+                        return;
+                    }
+
+                    isLoading.value = true;
+                    loadingMessage.value = 'Generating date range...';
+                    await nextTick(); // Allow UI update
+
+                    const dates = generateDateRange(startDate.value, endDate.value);
+                    if (dates.length === 0) {
+                        isLoading.value = false;
+                        loadingMessage.value = '';
+                        // Error message should be set by generateDateRange
+                        return;
+                    }
+
+                    const base = baseCurrency.value;
+                    // Use the reactive selectedTrackedCurrencies directly
+                    const tracked = selectedTrackedCurrencies.value;
+
+                    loadingMessage.value = `Preparing ${dates.length * tracked.length} API requests...`;
+                    await nextTick();
+
+                    const promises = [];
+                    dates.forEach(date => {
+                        tracked.forEach(trackedCode => {
+                            if (trackedCode !== base) { // Should be guaranteed by UI filter, but double check
+                                promises.push(fetchRateForDate(date, trackedCode, base));
+                            }
+                        });
+                    });
+
+                    if (promises.length === 0) {
+                        errorMessage.value = "No valid tracked currencies selected (excluding base).";
+                        isLoading.value = false;
+                        loadingMessage.value = '';
+                        return;
+                    }
+
+                    loadingMessage.value = `Fetching data for ${tracked.length} currencies across ${dates.length} dates...`;
+                    console.log(`Starting ${promises.length} concurrent fetches...`);
+
+                    const results = await Promise.allSettled(promises);
+                    console.log(`Finished ${results.length} fetches.`);
+                    loadingMessage.value = 'Processing results...';
+                    await nextTick();
+
+                    const ratesByDate = {};
+                    let fetchErrors = 0;
+                    let missingDataPoints = 0;
+                    const uniqueErrors = new Set();
+
+                    results.forEach(result => {
+                        if (result.status === 'fulfilled') {
+                            const { date, trackedCode, rate, error } = result.value;
+                            if (!ratesByDate[date]) ratesByDate[date] = {};
+                            if (rate !== null && !error) {
+                                ratesByDate[date][trackedCode] = rate;
+                            } else {
+                                // console.warn(`Data issue for ${trackedCode.toUpperCase()} on ${date}: ${error || 'Rate is null'}`);
+                                ratesByDate[date][trackedCode] = 'N/A'; // Placeholder for CSV
+                                missingDataPoints++;
+                                if (error) uniqueErrors.add(`(${trackedCode.toUpperCase()}: ${error})`);
+                            }
+                        } else {
+                            console.error("API Request failed:", result.reason);
+                            fetchErrors++;
+                            uniqueErrors.add(`(Network/Fetch Error: ${result.reason?.message || 'Unknown'})`);
+                            // How to represent this in CSV? Mark all relevant points as N/A?
+                            // Need to parse the promise/error to know which date/currency failed if possible.
+                            // For now, just count the error.
+                        }
+                    });
+
+                     // Combine error/warning messages
+                    let finalMessage = '';
+                    if (fetchErrors > 0) {
+                         finalMessage += `Encountered ${fetchErrors} network/fetch errors. `;
+                    }
+                    if (missingDataPoints > 0) {
+                         finalMessage += `Could not retrieve ${missingDataPoints} data points (marked as N/A). `;
+                    }
+                    if (uniqueErrors.size > 0 && uniqueErrors.size <= 5) { // Show details for a few errors
+                        finalMessage += `Issues included: ${Array.from(uniqueErrors).join(', ')}.`;
+                    } else if (uniqueErrors.size > 5) {
+                         finalMessage += `Check console for ${uniqueErrors.size} unique data retrieval issues.`;
+                    }
+
+                    if (finalMessage) {
+                        // Decide if it's a blocking error or just a warning
+                        if (fetchErrors > 0) {
+                            errorMessage.value = finalMessage + " CSV may be incomplete.";
+                        } else {
+                            // Treat missing data points as a warning shown in success message area
+                            successMessage.value = "CSV generated. " + finalMessage.trim();
+                        }
+                    }
+
+
+                    loadingMessage.value = 'Generating CSV file...';
+                    await nextTick();
+
+                    const header = ['Date', ...tracked.map(code => code.toUpperCase())].join(',');
+                    const csvRows = [header];
+
+                    dates.forEach(date => {
+                        const row = [date];
+                        const dailyRates = ratesByDate[date] || {};
+                        tracked.forEach(trackedCode => {
+                            const rate = dailyRates[trackedCode];
+                            row.push(typeof rate === 'number' ? rate.toFixed(6) : 'N/A'); // Use more precision for CSV
+                        });
+                        csvRows.push(row.join(','));
+                    });
+
+                    const csvContent = csvRows.join('\n');
+                    // Only proceed to download if no critical error occurred before this point
+                    if (!errorMessage.value || !errorMessage.value.includes("network/fetch errors")) {
+                        downloadCSV(csvContent, `exchange_rates_${base.toUpperCase()}_${startDate.value}_to_${endDate.value}.csv`);
+
+                        // Set success message only if no error message is displayed
+                        if (!errorMessage.value) {
+                             // If successMessage already has warnings, append to it, otherwise set new one
+                             if (successMessage.value && successMessage.value.includes("generated")) {
+                                 // Already contains warning message
+                             } else {
+                                 successMessage.value = `CSV file generated successfully with ${dates.length} dates for ${tracked.length} currencies!`;
+                             }
+                        }
+                    }
+
+
+                    isLoading.value = false;
+                    loadingMessage.value = '';
+                    formSubmitted.value = false; // Reset submission tracker only on success/completion
+                };
+
+
+                // --- MOUNTED ---
+                onMounted(async () => {
+                    console.log("Download App Mounted");
+                    if (typeof dateFns === 'undefined' || typeof dateFns.format === 'undefined') {
+                       console.error("date-fns library failed to load!");
+                       errorMessage.value = "Date library failed to load. Please refresh.";
+                       return;
+                    }
+                    await fetchAvailableCurrencies();
+
+                    // Initial validation/cleanup for defaults
+                    if (availableCurrencies.value && Object.keys(availableCurrencies.value).length > 0) {
+                        if (!availableCurrencies.value[baseCurrency.value]) {
+                            baseCurrency.value = Object.keys(availableCurrencies.value).sort()[0];
+                            console.warn(`Default base currency INR not found/available, defaulting to ${baseCurrency.value.toUpperCase()}`);
+                        }
+                        selectedTrackedCurrencies.value = selectedTrackedCurrencies.value.filter(code =>
+                            availableCurrencies.value[code] && code !== baseCurrency.value
+                        );
+                        if (selectedTrackedCurrencies.value.length === 0) {
+                             const firstAvailableTracked = sortedAvailableCurrenciesArray.value.find(c => c.code !== baseCurrency.value)?.code;
+                             if(firstAvailableTracked) {
+                                 selectedTrackedCurrencies.value = [firstAvailableTracked];
+                                 console.warn(`Default tracked currency USD not valid/available, defaulting to ${firstAvailableTracked.toUpperCase()}`);
+                             }
+                        }
+                    } else {
+                        // Handle case where currency list failed to load
+                        console.warn("Cannot set defaults as currency list is empty or failed to load.");
+                        // errorMessage is likely already set by fetchAvailableCurrencies
+                    }
+
+
+                    // Add click outside listener
+                    document.addEventListener('click', handleClickOutside);
+                });
+
+                 // --- BEFORE UNMOUNT ---
+                 // Clean up listener when component is destroyed
+                 onBeforeUnmount(() => {
+                    document.removeEventListener('click', handleClickOutside);
+                 });
+
+
+                return {
+                    // Existing refs/computed/methods
+                    availableCurrencies,
+                    isLoading,
+                    loadingMessage,
+                    errorMessage,
+                    successMessage,
+                    minDate,
+                    maxDate,
+                    startDate,
+                    endDate,
+                    baseCurrency,
+                    isFormValid,
+                    handleDownloadRequest,
+                    formSubmitted, // Expose for validation message
+
+                    // Custom Multi-Select refs/computed/methods
+                    selectedTrackedCurrencies,
+                    searchTerm,
+                    isDropdownOpen,
+                    highlightedIndex,
+                    multiSelectContainer, // Template ref
+                    multiSelectSearchInput, // Template ref
+                    filteredAvailableCurrencies, // Use this for the dropdown v-for
+                    openDropdown,
+                    closeDropdown,
+                    openDropdownAndFocusInput,
+                    selectCurrency,
+                    removeTrackedCurrency,
+                    handleBackspace,
+                    highlightNext,
+                    highlightPrev,
+                    selectHighlighted,
+                };
+            }
+        });
+
+        app.mount('#app');
+
+    </script>
+
+    </body>
+</html>

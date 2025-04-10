@@ -3,211 +3,844 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>KonCurr</title>
+        <!-- Updated Title -->
+        <title>KonCurr - Currency Tracker</title>
+        <!-- Tailwind CSS CDN -->
         <script src="https://cdn.tailwindcss.com"></script>
-        <script>
-      tailwind.config = { theme: { extend: { fontFamily: {}, colors: { 'primary': { DEFAULT: '#005ea6', 'dark': '#003d73', }, } } } }
-    </script>
-        <style type="text/tailwindcss">
-        body { @apply font-sans bg-white text-slate-800; }
-        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #005ea6; animation: spin 1s ease infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .mini-chart-container { height: 80px; width: 100%; margin-top: auto; padding-top: 1rem; }
-        select { appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem; }
-        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
-        #download-button:disabled { @apply opacity-50 cursor-not-allowed; }
-        #overlay-checkbox-container label { @apply ml-2 text-sm text-slate-700 cursor-pointer; }
-        #overlay-checkbox-container input[type=checkbox] { @apply h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer; }
-        #overlay-checkbox-container > div { @apply flex items-center; }
-        /* News Feed Item Styling */
-        #news-feed-content a { @apply block p-3 border-b border-slate-100 hover:bg-slate-50 transition duration-150; }
-        #news-feed-content a:last-child { @apply border-b-0; }
-        #news-feed-content .news-title { @apply text-sm font-medium text-slate-700; }
-        #news-feed-content .news-date { @apply text-xs text-slate-500 mt-1; }
+        <!-- Vue.js CDN -->
+        <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+        <!-- Chart.js CDN -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <!-- date-fns v3 CDN build -->
+        <script
+            src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/cdn.min.js"></script>
+        <!-- Correct Adapter for date-fns v3 -->
+        <script
+            src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+        <style>
+        /* Base */
+        body {
+            background-color: #ffffff;
+            color: #000000; /* Default text black */
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        [v-cloak] { display: none; }
+
+        /* Simple pulse */
+        @keyframes pulse-simple {
+            50% { opacity: .6; }
+        }
+        .animate-pulse-simple {
+            animation: pulse-simple 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .placeholder {
+             background-color: #f3f4f6; /* gray-100 */
+             border-radius: 0.25rem; /* rounded-sm */
+        }
+
+        /* Chart container */
+        .chart-container {
+            height: 50px; /* Even smaller */
+            position: relative;
+            margin-top: 0.75rem; /* mt-3 */
+        }
+
+        /* Subtle focus ring */
+        input:focus, button:focus {
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            box-shadow: 0 0 0 2px #000000; /* Black ring */
+        }
+        /* Remove default button focus outline if using custom ring */
+        button:focus {
+            outline: none;
+        }
+
+        /* Chart Tooltip Minimal Styling */
+        .chartjs-tooltip {
+            background: rgba(0, 0, 0, 0.85); /* Slightly transparent black */
+            color: white;
+            padding: 4px 6px; /* Smaller padding */
+            border-radius: 3px;
+            font-size: 11px; /* Smaller font */
+            opacity: 1;
+            pointer-events: none;
+            position: absolute;
+            transform: translate(-50%, -120%); /* Position above point */
+            transition: all .1s ease;
+            white-space: nowrap;
+            z-index: 10; /* Ensure tooltip is above other elements */
+        }
+
+        /* KonCurr Title Gradient */
+        .koncurr-title {
+          background: linear-gradient(to right, #4285F4, #9B59B6, #E91E63); /* Example: Blue -> Purple -> Pink */
+          -webkit-background-clip: text; /* Clip background to text (webkit) */
+          background-clip: text;         /* Clip background to text (standard) */
+          color: transparent;           /* Make text transparent */
+          /* Ensure display allows clipping */
+          /* display: inline-block; needed if parent isn't text-center or similar */
+        }
     </style>
     </head>
-    <body class="flex flex-col min-h-screen leading-relaxed">
+    <body>
 
-        <header class="py-6 border-b border-slate-200">
-            <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div id="app" v-cloak
+            class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+
+            <!-- Header -->
+            <header class="mb-10 text-center">
+                <!-- Updated H1 with branding and class for gradient -->
                 <h1
-                    class="text-2xl md:text-3xl font-semibold text-slate-900 mb-1">
-                    KonCurr
-                </h1>
-                <p class="text-sm text-slate-600">
-                    Exchange Rates vs INR (Last 30 Days)
-                </p>
-            </div>
-        </header>
+                    class="text-2xl sm:text-3xl font-semibold mb-1 koncurr-title inline-block">KonCurr</h1>
+                <p class="text-sm text-gray-500">Foreign exchange rates against
+                    INR</p>
+            </header>
 
-        <main
-            class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl flex-1 py-12 md:py-16">
+            <!-- Navigation -->
+            <nav class="mb-10">
+                <ul
+                    class="flex justify-center items-center space-x-6 sm:space-x-8 text-sm">
+                    <li>
+                        <a href="index.html"
+                            class="font-medium underline decoration-2 underline-offset-4">Tracker</a>
+                        <!-- Underline active -->
+                    </li>
+                    <li>
+                        <a href="download.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Download
+                            Data</a>
+                    </li>
+                    <li>
+                        <a href="convert.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Currency
+                            Converter</a>
+                    </li>
+                    <li>
+                        <a href="compare.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Compare
+                            Currencies</a>
+                    </li>
+                    <li>
+                        <a href="news.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Market
+                            News</a>
+                    </li>
+                </ul>
+            </nav>
 
-            <div id="main-loader"
-                class="flex flex-col justify-center items-center py-24 text-slate-500 text-base text-center">
-                <div class="spinner mb-4"></div>
-                Loading currency data...
-            </div>
-
-            <div id="main-error"
-                class="bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded-md text-center font-medium mt-6 text-sm max-w-3xl mx-auto"
-                style="display: none;"></div>
-
-            <div id="currency-grid"
-                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 md:gap-8 mb-16 md:mb-20"
-                style="display: none;">
-                {/* Currency cards are dynamically injected here */}
-            </div>
-
-            <hr id="news-separator"
-                class="my-16 border-slate-200 max-w-3xl mx-auto"
-                style="display: none;">
-            <section id="news-feed-section" class="p-6 md:p-8 max-w-3xl mx-auto"
-                style="display: none;">
-                <h2
-                    class="text-xl md:text-2xl font-semibold text-slate-700 mb-6 text-center">Market
-                    News Headlines</h2>
-                <div id="news-loader"
-                    class="flex justify-center items-center py-10 text-slate-500 text-sm">
-                    <div class="spinner mr-3 h-5 w-5 border-2"></div>
-                    Loading news...
-                </div>
-                <div id="news-error"
-                    class="text-center text-sm text-red-600 py-10"
-                    style="display: none;"></div>
-                <div id="news-feed-content"
-                    class="border border-slate-200 rounded-lg shadow-sm bg-white max-h-96 overflow-y-auto"
-                    style="display: none;">
-                </div>
-                <p class="text-xs text-slate-400 text-center mt-3">News feed via
-                    public RSS proxy (may be unreliable).</p>
+            <!-- Add Currency Section -->
+            <section class="mb-10 max-w-lg mx-auto">
+                <form @submit.prevent="addCurrency"
+                    class="flex items-center gap-2">
+                    <div class="flex-grow">
+                        <!-- Label for accessibility, hidden visually -->
+                        <label for="new-currency" class="sr-only">Currency
+                            Code</label>
+                        <input
+                            id="new-currency"
+                            type="text"
+                            v-model.trim="newCurrencyInput"
+                            @input="filterSuggestions"
+                            placeholder="Add currency code (e.g., USD)"
+                            list="currencySuggestions"
+                            class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm placeholder-gray-400"
+                            required>
+                        <datalist id="currencySuggestions">
+                            <option
+                                v-for="(name, code) in filteredAvailableCurrencies"
+                                :key="code" :value="code.toUpperCase()">
+                                {{ name }}
+                            </option>
+                        </datalist>
+                    </div>
+                    <button
+                        type="submit"
+                        class="px-4 py-1.5 bg-black text-white font-medium rounded-md hover:bg-gray-800 transition-colors text-sm whitespace-nowrap">
+                        Track
+                    </button>
+                </form>
+                <p v-if="inputError"
+                    class="text-red-600 text-xs mt-1.5 text-center sm:text-left">{{
+                    inputError }}</p>
             </section>
 
-            <hr id="converter-separator"
-                class="my-16 border-slate-200 max-w-3xl mx-auto"
-                style="display: none;">
-            <section id="currency-converter"
-                class="p-6 md:p-8 max-w-3xl mx-auto" style="display: none;">
-                <h2
-                    class="text-xl md:text-2xl font-semibold text-slate-700 mb-8 text-center">Currency
-                    Converter</h2>
+            <!-- Loading Indicator -->
+            <div v-if="isLoading && trackedCurrencies.length === 0"
+                class="text-center py-16">
+                <p class="text-sm text-gray-500">Loading...</p>
+            </div>
+
+            <!-- --- Tracked Currencies --- -->
+            <section>
+                <!-- Section Header -->
+                <div class="flex justify-between items-center mb-5">
+                    <h2 class="text-lg font-semibold">Tracked</h2>
+                    <button
+                        @click="fetchAllData"
+                        :disabled="isLoading"
+                        class="flex items-center text-gray-500 text-xs hover:text-black disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        title="Refresh All Data">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                            class="h-3.5 w-3.5 mr-1" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2"
+                            :class="{ 'animate-spin': isLoading }">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m-15.357-2a8.001 8.001 0 0015.357 2m0 0H15" />
+                        </svg>
+                        <span>Refresh</span>
+                    </button>
+                </div>
+
+                <!-- Empty State -->
+                <div v-if="!isLoading && trackedCurrencies.length === 0"
+                    class="text-center py-12 border border-dashed border-gray-200 rounded-md">
+                    <p class="text-sm text-gray-500">No currencies are being
+                        tracked.</p>
+                </div>
+
+                <!-- --- Cards Grid --- -->
                 <div
-                    class="flex flex-col md:flex-row md:items-end gap-4 md:gap-3">
-                    <div class="flex-grow md:flex-grow-0 md:w-48"><label
-                            for="amount"
-                            class="block text-sm font-medium text-slate-600 mb-1">Amount</label><input
-                            type="number" id="amount" name="amount" value="100"
-                            placeholder="Enter amount"
-                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></div>
-                    <div class="flex-grow"><label for="from-currency"
-                            class="block text-sm font-medium text-slate-600 mb-1">From</label><select
-                            id="from-currency" name="from-currency"
-                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></select></div>
-                    <div class="flex justify-center md:pb-2 shrink-0"><button
-                            id="swap-button" title="Swap currencies"
-                            class="p-2 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition duration-150"><svg
-                                xmlns="http://www.w3.org/2000/svg" width="20"
-                                height="20" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"><line x1="12" y1="5"
-                                    x2="12" y2="19"></line><polyline
-                                    points="19 12 12 19 5 12"></polyline></svg><svg
-                                xmlns="http://www.w3.org/2000/svg" width="20"
-                                height="20" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round"
-                                class="-mt-1"><line x1="12" y1="19" x2="12"
-                                    y2="5"></line><polyline
-                                    points="5 12 12 5 19 12"></polyline></svg></button></div>
-                    <div class="flex-grow"><label for="to-currency"
-                            class="block text-sm font-medium text-slate-600 mb-1">To</label><select
-                            id="to-currency" name="to-currency"
-                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></select></div>
+                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-8">
+
+                    <!-- --- Card --- -->
+                    <div v-for="code in trackedCurrencies" :key="code"
+                        class="relative group border border-gray-100 rounded-md p-4">
+                        <!-- Remove Button -->
+                        <button
+                            @click="removeCurrency(code)"
+                            class="absolute top-1.5 right-1.5 p-0.5 text-gray-400 hover:text-black opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Remove">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+
+                        <!-- Card Header -->
+                        <div class="mb-1.5">
+                            <span class="text-base font-medium mr-1.5">{{
+                                code.toUpperCase() }}</span>
+                            <span class="text-xs text-gray-500 truncate"
+                                :title="availableCurrencies[code] || code">
+                                {{ availableCurrencies[code] || '' }}
+                            </span>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div v-if="currencyData[code] === 'loading'"
+                            class="space-y-1.5 animate-pulse-simple">
+                            <div class="h-6 w-3/5 placeholder"></div>
+                            <!-- Rate -->
+                            <div class="h-4 w-4/5 placeholder"></div>
+                            <!-- Change -->
+                            <div class="h-12 mt-3 placeholder"></div>
+                            <!-- Graph -->
+                        </div>
+
+                        <!-- Data State -->
+                        <div
+                            v-else-if="currencyData[code] && typeof currencyData[code].rate === 'number'">
+                            <!-- Rate -->
+                            <p class="text-xl font-medium leading-tight">
+                                {{ formatRate(currencyData[code].rate) }}
+                            </p>
+                            <!-- Change Info -->
+                            <div class="text-xs h-4 mt-0.5">
+                                <!-- Fixed height -->
+                                <p
+                                    v-if="typeof currencyData[code].change === 'number' && typeof currencyData[code].percentChange === 'number'"
+                                    :class="getChangeClass(currencyData[code].change)"
+                                    class="flex items-center space-x-1">
+                                    <span>{{
+                                        formatChange(currencyData[code].change)
+                                        }}</span>
+                                    <span class="text-gray-300">/</span>
+                                    <span>{{
+                                        formatPercentChange(currencyData[code].percentChange)
+                                        }}</span>
+                                    <span
+                                        v-if="currencyData[code].change !== 0">
+                                        <span
+                                            v-if="currencyData[code].change > 0">▲</span>
+                                        <span v-else>▼</span>
+                                    </span>
+                                </p>
+                                <p v-else class="text-gray-400 italic">n/a</p>
+                            </div>
+
+                            <!-- Graph Container -->
+                            <div class="chart-container">
+                                <canvas :id="'chart-' + code"></canvas>
+                                <p
+                                    v-if="currencyData[code] !== 'loading' && !currencyData[code]?.chartInstance && !currencyData[code]?.historyError"
+                                    class="text-xs text-gray-400 absolute inset-0 flex items-center justify-center pointer-events-none">Loading...</p>
+                                <p v-if="currencyData[code]?.historyError"
+                                    class="text-xs text-red-600 absolute inset-0 flex items-center justify-center pointer-events-none">{{
+                                    currencyData[code].historyError }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Error State -->
+                        <div
+                            v-else-if="currencyData[code] && currencyData[code].error">
+                            <p
+                                class="text-sm text-red-600 font-medium leading-tight">Load
+                                Error</p>
+                            <p class="text-xs text-red-500 mt-0.5 truncate"
+                                :title="currencyData[code].error">
+                                {{ currencyData[code].error }}
+                            </p>
+                            <div class="chart-container">
+                                <p
+                                    class="text-xs text-gray-400 absolute inset-0 flex items-center justify-center">Chart
+                                    unavailable</p>
+                            </div>
+                        </div>
+
+                        <!-- No Data Fallback -->
+                        <div v-else class="py-4">
+                            <p class="text-sm text-gray-400 italic">Data
+                                unavailable.</p>
+                        </div>
+                    </div>
+                    <!-- --- End Card --- -->
                 </div>
-                <div id="conversion-result"
-                    class="mt-8 text-lg md:text-xl font-medium text-slate-800 text-center h-8">Loading
-                    rates...</div>
+                <!-- --- End Grid --- -->
             </section>
 
-            <hr id="download-separator"
-                class="my-16 border-slate-200 max-w-3xl mx-auto"
-                style="display: none;">
-            <section id="data-downloader" class="p-6 md:p-8 max-w-3xl mx-auto"
-                style="display: none;">
-                <h2
-                    class="text-xl md:text-2xl font-semibold text-slate-700 mb-8 text-center">Download
-                    Historical Data</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
-                    <div><label for="start-date"
-                            class="block text-sm font-medium text-slate-600 mb-1">Start
-                            Date</label><input type="date" id="start-date"
-                            name="start-date" required min="2024-04-01"
-                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></div>
-                    <div><label for="end-date"
-                            class="block text-sm font-medium text-slate-600 mb-1">End
-                            Date</label><input type="date" id="end-date"
-                            name="end-date" required
-                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></div>
-                    <div class="sm:col-span-1"><label for="download-currency"
-                            class="block text-sm font-medium text-slate-600 mb-1">Currency</label><select
-                            id="download-currency" name="download-currency"
-                            required
-                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></select></div>
-                    <div class="sm:col-span-1"><label
-                            for="download-base-currency"
-                            class="block text-sm font-medium text-slate-600 mb-1">Base
-                            Currency</label><select id="download-base-currency"
-                            name="download-base-currency" required
-                            class="block w-full px-3 py-2 border border-slate-200 rounded-md shadow-sm bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"></select></div>
-                    <div class="sm:col-span-2 flex justify-center mt-4"><button
-                            id="download-button"
-                            class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition duration-150 ease-in-out">Download
-                            CSV</button></div>
-                </div>
-                <div id="download-status"
-                    class="mt-6 text-sm text-center min-h-[1.25rem]"></div>
-            </section>
-
-            <hr id="overlay-separator"
-                class="my-16 border-slate-200 max-w-5xl mx-auto"
-                style="display: none;">
-            <section id="overlay-chart-section"
-                class="p-6 md:p-8 max-w-5xl mx-auto" style="display: none;">
-                <h2
-                    class="text-xl md:text-2xl font-semibold text-slate-700 mb-6 text-center">Compare
-                    Currency Trends (vs INR)</h2>
-                <div class="mb-6">
-                    <p class="text-sm text-slate-600 mb-3 text-center">Select
-                        2-4 currencies to compare:</p>
-                    <div id="overlay-checkbox-container"
-                        class="flex flex-wrap justify-center gap-x-6 gap-y-3"></div>
-                    <p id="overlay-selection-limit-msg"
-                        class="text-xs text-red-500 text-center mt-2 h-4"></p>
-                </div>
-                <div
-                    class="relative h-96 md:h-[500px] bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
-                    <canvas id="overlay-chart-canvas"></canvas>
-                </div>
-                <div id="overlay-chart-status"
-                    class="mt-4 text-sm text-center text-slate-500 min-h-[1.25rem]"></div>
-            </section>
-
-        </main>
-
-        <footer class="text-center py-6 mt-auto border-t border-slate-200">
-            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-                <p class="text-xs text-slate-500">Currency data provided by <a
-                        href="https://github.com/fawazahmed0/exchange-api"
+            <!-- Footer -->
+            <footer
+                class="text-center mt-12 sm:mt-16 pt-6 border-t border-gray-100">
+                <p class="text-xs text-gray-400">Data via <a
+                        href="https://github.com/fawazahmed0/currency-api"
                         target="_blank" rel="noopener noreferrer"
-                        class="text-primary hover:text-primary-dark hover:underline">Fawazahmed0
-                        Currency API</a>. Updated daily.</p>
-            </div>
-        </footer>
+                        class="hover:underline">fawazahmed0/currency-api</a>.
+                    Base: INR.</p>
+            </footer>
+        </div>
 
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script src="script.js"></script>
+        <!-- Tooltip Element (created once, reused) -->
+        <div id="chartjs-tooltip" class="chartjs-tooltip"
+            style="opacity: 0;"></div>
+
+        <script>
+        const { createApp, ref, reactive, onMounted, computed, nextTick } = Vue;
+
+        const app = createApp({
+            // --- DATA ---
+            data() {
+                return {
+                    availableCurrencies: {},
+                    trackedCurrencies: [],
+                    newCurrencyInput: '',
+                    currencyData: reactive({}),
+                    isLoading: false,
+                    inputError: null,
+                    apiBaseUrl: 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api',
+                    apiVersion: 'v1',
+                    baseCurrency: 'inr'
+                }
+            },
+            // --- COMPUTED ---
+            computed: {
+                filteredAvailableCurrencies() { return this.availableCurrencies; }
+            },
+            // --- METHODS ---
+            methods: {
+                 // --- Date Helpers ---
+                 getYesterdayDateString(dateString = null) {
+                    const date = dateString ? new Date(dateString + 'T00:00:00Z') : new Date();
+                     if (dateString && isNaN(date.getTime())) { console.error("Invalid dateString:", dateString); return null; }
+                    date.setUTCDate(date.getUTCDate() - 1);
+                    const year = date.getUTCFullYear();
+                    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                    const day = String(date.getUTCDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                 },
+                 // --- Data Fetching ---
+                 async fetchAvailableCurrencies() {
+                    this.isLoading = true;
+                    try {
+                        const url = `${this.apiBaseUrl}@latest/${this.apiVersion}/currencies.min.json`;
+                        const response = await fetch(url);
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        this.availableCurrencies = await response.json();
+                    } catch (error) {
+                        console.error("Error fetching available currencies:", error);
+                        this.inputError = "Could not load currency list.";
+                    } finally {
+                        // Ensure loading stops even if fetchAllData isn't called immediately
+                        if (this.trackedCurrencies.length === 0) {
+                           this.isLoading = false;
+                        }
+                    }
+                 },
+                 async fetchRate(currencyCode, date = 'latest') {
+                    const codeLower = currencyCode.toLowerCase();
+                    const url = `${this.apiBaseUrl}@${date}/${this.apiVersion}/currencies/${codeLower}.min.json`;
+                    try {
+                        const response = await fetch(url);
+                        if (!response.ok) {
+                             const errorMsg = `HTTP ${response.status} for ${codeLower} on ${date}`;
+                             if (response.status === 404) { return { rate: undefined, date: undefined, error: `No data for ${date}` }; }
+                             throw new Error(errorMsg);
+                        }
+                        const data = await response.json();
+                        const fetchedDate = data.date;
+                        const rate = data[codeLower]?.[this.baseCurrency];
+                        if (rate === undefined) { return { rate: undefined, date: fetchedDate, error: `INR rate missing` }; }
+                        return { rate: Number(rate), date: fetchedDate, error: null };
+                    } catch (error) {
+                        console.error(`Error fetching rate for ${currencyCode} on ${date}:`, error);
+                        return { rate: undefined, date: undefined, error: error.message };
+                    }
+                 },
+                 async fetchAllData() {
+                    if (this.trackedCurrencies.length === 0) { this.isLoading = false; return; }
+                    this.isLoading = true;
+                    console.log("--- Starting Data Refresh ---");
+                    this.destroyAllCharts(); // Destroy charts before setting to 'loading'
+                    this.trackedCurrencies.forEach(code => { this.currencyData[code] = 'loading'; });
+
+                    await nextTick(); // Ensure DOM updates with loading state
+
+                    const latestPromises = this.trackedCurrencies.map(code => this.fetchRate(code, 'latest').then(result => ({ code, ...result })));
+                    const latestResults = await Promise.allSettled(latestPromises);
+
+                    const latestData = {};
+                    const comparisonFetchPromises = [];
+                    const historyFetchData = {};
+
+                    latestResults.forEach((result, index) => {
+                        const code = this.trackedCurrencies[index];
+                        if (result.status === 'fulfilled') {
+                            const { rate, date, error } = result.value;
+                            latestData[code] = { rate, date, error, history: [], historyError: null, chartInstance: null };
+                            if (rate !== undefined && date && !error) {
+                                const comparisonDate = this.getYesterdayDateString(date);
+                                if (comparisonDate) {
+                                    comparisonFetchPromises.push(
+                                        this.fetchRate(code, comparisonDate).then(compResult => ({
+                                            code,
+                                            comparisonRate: compResult.rate,
+                                            comparisonDate: comparisonDate,
+                                            comparisonError: compResult.error
+                                        }))
+                                    );
+                                } else {
+                                    latestData[code].comparisonError = "Invalid latest date";
+                                }
+                                const historyDates = this.getLastNDates(date, 30);
+                                if (historyDates.length > 0) {
+                                    historyFetchData[code] = { datesToFetch: historyDates };
+                                } else {
+                                    latestData[code].historyError = "Could not generate history dates";
+                                }
+                            } else {
+                                if (!latestData[code].historyError) latestData[code].historyError = "Latest data unavailable";
+                            }
+                        } else {
+                             latestData[code] = { rate: undefined, date: undefined, error: 'Network/Fetch error', history: [], historyError: 'Latest fetch failed', chartInstance: null };
+                        }
+                    });
+
+                    const comparisonResults = await Promise.allSettled(comparisonFetchPromises);
+
+                    const historyFetchPromises = [];
+                    for (const code in historyFetchData) {
+                        historyFetchData[code].datesToFetch.forEach(histDate => {
+                            historyFetchPromises.push(
+                                this.fetchRate(code, histDate).then(histResult => ({
+                                    code,
+                                    date: histDate,
+                                    rate: histResult.rate,
+                                    error: histResult.error
+                                }))
+                            );
+                        });
+                    }
+                    const historyResults = await Promise.allSettled(historyFetchPromises);
+
+                    this.trackedCurrencies.forEach(code => {
+                        const latest = latestData[code];
+                        let finalData = {
+                            rate: undefined, rateDate: null, error: null,
+                            comparisonRate: undefined, comparisonDate: null, comparisonError: null,
+                            change: undefined, percentChange: undefined,
+                            history: [], historyError: null, chartInstance: null
+                        };
+
+                        if (!latest) {
+                            finalData.error = 'Failed to process latest fetch result';
+                            this.currencyData[code] = finalData;
+                            return;
+                        }
+
+                        finalData = { ...finalData, rate: latest.rate, rateDate: latest.date, error: latest.error, historyError: latest.historyError };
+
+                        const compResult = comparisonResults.find(r => r.status === 'fulfilled' && r.value.code === code);
+                        if (compResult) {
+                            finalData.comparisonRate = compResult.value.comparisonRate;
+                            finalData.comparisonDate = compResult.value.comparisonDate;
+                            if (compResult.value.comparisonError) finalData.comparisonError = compResult.value.comparisonError;
+                        } else {
+                            // Check if a comparison was actually attempted before assigning 'Fetch failed'
+                            const comparisonAttempted = comparisonFetchPromises.some(p => p.then(res => res.code === code)); // More robust check
+                            if (comparisonAttempted && !finalData.comparisonError) {
+                                finalData.comparisonError = 'Comparison fetch failed';
+                            }
+                        }
+
+                        const successfulHistory = historyResults
+                            .filter(r => r.status === 'fulfilled' && r.value.code === code && typeof r.value.rate === 'number' && !r.value.error)
+                            .map(r => ({ date: r.value.date, rate: r.value.rate }))
+                            .sort((a, b) => new Date(a.date) - new Date(b.date)); // Ensure chronological order
+
+                        if (successfulHistory.length > 0) {
+                            finalData.history = successfulHistory;
+                        } else if (!finalData.historyError) {
+                            const failedHistoryCount = historyResults.filter(r => (r.status === 'fulfilled' && r.value.code === code && r.value.error) || (r.status === 'rejected')).length;
+                            finalData.historyError = `No valid history data${failedHistoryCount > 0 ? ` (${failedHistoryCount} errors)` : ''}`;
+                        }
+
+                        // Calculate change only if both rates are valid numbers
+                        if (typeof finalData.rate === 'number' && typeof finalData.comparisonRate === 'number') {
+                            finalData.change = finalData.rate - finalData.comparisonRate;
+                            finalData.percentChange = (finalData.comparisonRate !== 0) ? (finalData.change / finalData.comparisonRate) * 100 : Infinity;
+                        } else {
+                            finalData.change = undefined;
+                            finalData.percentChange = undefined;
+                        }
+
+                        this.currencyData[code] = finalData;
+                    });
+
+                    await nextTick(() => {
+                        console.log("Attempting to render Chart.js graphs...");
+                        this.trackedCurrencies.forEach(code => {
+                            const currentData = this.currencyData[code];
+                            if (currentData && currentData.history && currentData.history.length > 0 && !currentData.historyError) {
+                                this.renderChart(code);
+                            } else {
+                                const reason = currentData?.historyError ? currentData.historyError : 'no valid history data';
+                                console.log(`[${code.toUpperCase()}] Skipping chart render - ${reason}.`);
+                            }
+                        });
+                    });
+
+                    this.isLoading = false;
+                    console.log("--- Data Refresh Complete ---");
+                 },
+                 getLastNDates(endDateString, numberOfDays) {
+                    const dates = [];
+                    const endDate = new Date(endDateString + 'T00:00:00Z');
+                    if (isNaN(endDate.getTime())) {
+                        console.error("Invalid end date for getLastNDates:", endDateString);
+                        return [];
+                    }
+                    for (let i = 0; i < numberOfDays; i++) {
+                        const date = new Date(endDate);
+                        date.setUTCDate(date.getUTCDate() - i);
+                        const year = date.getUTCFullYear();
+                        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                        const day = String(date.getUTCDate()).padStart(2, '0');
+                        dates.push(`${year}-${month}-${day}`);
+                    }
+                    return dates.reverse(); // Return in chronological order
+                 },
+
+                 // --- Chart Rendering ---
+                 renderChart(code) {
+                    const data = this.currencyData[code];
+                    // Double check conditions
+                    if (!data || !data.history || data.history.length === 0 || data.historyError) {
+                         console.warn(`[${code.toUpperCase()}] Attempted to render chart without valid data or with history error.`);
+                         return;
+                    }
+                     this.destroyChart(code); // Ensure previous chart is gone
+
+                     const chartElementId = `chart-${code}`;
+                     const ctx = document.getElementById(chartElementId);
+                     if (!ctx) {
+                         console.error(`[${code.toUpperCase()}] Canvas element #${chartElementId} not found.`);
+                         data.historyError = "Canvas missing"; // Update status if canvas is missing
+                         return;
+                     }
+                     if (typeof window.dateFns === 'undefined' || typeof window.dateFns.parseISO === 'undefined') {
+                         console.error(`[${code.toUpperCase()}] date-fns library not loaded correctly.`);
+                         data.historyError = "Date lib error";
+                         return;
+                     }
+
+                     try {
+                         const chartPoints = data.history.map(item => {
+                            // Add robust date parsing with check
+                            const parsedDate = window.dateFns.parseISO(item.date + 'T00:00:00Z');
+                            if (isNaN(parsedDate.getTime())) {
+                                console.warn(`[${code.toUpperCase()}] Invalid date found in history: ${item.date}`);
+                                return null; // Skip invalid points
+                            }
+                            return { x: parsedDate, y: item.rate };
+                         }).filter(p => p !== null); // Filter out nulls
+
+                         if (chartPoints.length === 0) {
+                             throw new Error("No valid data points after date parsing.");
+                         }
+
+                         const chartConfig = {
+                             type: 'line',
+                             data: {
+                                 datasets: [{
+                                    label: code.toUpperCase(), // Added label for potential tooltip use
+                                    data: chartPoints,
+                                    borderColor: '#000000', // Black line
+                                    borderWidth: 1,
+                                    pointRadius: 0, // No points by default
+                                    pointHoverRadius: 3, // Slightly larger hover point
+                                    pointHoverBackgroundColor: '#000000',
+                                    fill: false,
+                                    tension: 0.1 // Slight curve
+                                }]
+                             },
+                             options: {
+                                 responsive: true, // Ensure chart resizes
+                                 maintainAspectRatio: false,
+                                 scales: {
+                                     x: {
+                                         type: 'time',
+                                         display: false, // Hide X axis labels/grid
+                                         time: {
+                                             // If you wanted tooltips to show dates, you'd need unit, e.g.:
+                                             // unit: 'day',
+                                             // tooltipFormat: 'PP' // Requires date-fns locale if not English default
+                                         }
+                                     },
+                                     y: {
+                                         display: false // Hide Y axis labels/grid
+                                     }
+                                 },
+                                 plugins: {
+                                     legend: {
+                                         display: false // Hide legend
+                                     },
+                                     tooltip: {
+                                         enabled: false, // Disable default Chart.js tooltip
+                                         external: this.externalTooltipHandler, // Use custom HTML tooltip
+                                         mode: 'index', // Show tooltip based on x-axis index
+                                         intersect: false, // Tooltip appears even not directly hovering point
+                                         callbacks: {
+                                              // Example label callback (used by external handler via tooltip.body)
+                                             label: (tooltipItem) => {
+                                                 let rate = tooltipItem.parsed.y;
+                                                 // Use the same formatting as the card
+                                                 return rate !== null ? this.formatRate(rate) + ' INR' : 'N/A';
+                                             }
+                                         }
+                                     }
+                                 },
+                                 interaction: {
+                                     enabled: true, // Allow interactions like hover
+                                     mode: 'nearest', // Find nearest item for interaction
+                                     axis: 'x', // Interaction primarily driven by x-axis position
+                                     intersect: false // Trigger interaction even if not directly over point
+                                 }
+                             }
+                         };
+                         data.chartInstance = new Chart(ctx, chartConfig);
+                         data.historyError = null; // Clear any previous error state on successful render
+                         console.log(`[${code.toUpperCase()}] Chart rendered successfully.`);
+
+                     } catch (error) {
+                         console.error(`[${code.toUpperCase()}] Error rendering Chart.js chart:`, error);
+                         data.historyError = "Chart render error";
+                         // Attempt to clear canvas if context exists
+                         if (ctx && ctx.getContext('2d')) {
+                             const context2d = ctx.getContext('2d');
+                             context2d.clearRect(0, 0, ctx.width, ctx.height);
+                             context2d.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                             context2d.textAlign = 'center';
+                             // context2d.fillText('Error', ctx.width / 2, ctx.height / 2); // Optional: indicate error on canvas
+                         }
+                     }
+                 },
+
+                 // --- External Tooltip Handler ---
+                externalTooltipHandler(context) {
+                    const {chart, tooltip} = context;
+                    // Find or create the tooltip element within the specific card's scope
+                    let tooltipEl = chart.canvas.closest('.relative.group')?.querySelector('div#chartjs-tooltip'); // Scope search
+
+                    if (!tooltipEl) {
+                         tooltipEl = document.createElement('div');
+                         tooltipEl.id = 'chartjs-tooltip';
+                         tooltipEl.style.opacity = 0;
+                         tooltipEl.style.position = 'absolute'; // Position relative to parent
+                         tooltipEl.style.pointerEvents = 'none'; // Don't block mouse events
+                         tooltipEl.classList.add('chartjs-tooltip'); // Apply base styles
+
+                         // Append to the chart's container or a suitable parent
+                         chart.canvas.parentNode.appendChild(tooltipEl); // Append inside .chart-container
+                    }
+
+                    // Hide if no tooltip body to show
+                    if (tooltip.opacity === 0 || !tooltip.body || tooltip.body.length === 0) {
+                        tooltipEl.style.opacity = 0;
+                        return;
+                    }
+
+                    // Set Text (using the formatted label from callbacks)
+                    if (tooltip.body) {
+                        const bodyLines = tooltip.body.map(b => b.lines);
+                        let innerHtml = '';
+                        bodyLines.forEach(body => {
+                            // Ensure body is not null/undefined before adding
+                             if (body) innerHtml += '<div>' + body + '</div>';
+                        });
+                         tooltipEl.innerHTML = innerHtml;
+                    } else {
+                         tooltipEl.innerHTML = ''; // Clear if no body
+                    }
+
+                    const position = chart.canvas.getBoundingClientRect(); // Get canvas position relative to viewport
+                    const parentRect = chart.canvas.parentNode.getBoundingClientRect(); // Get parent (.chart-container) position
+
+                    // Calculate position relative to the parent container
+                    // Adjust for potential scrolling if needed, but likely fine for this layout
+                    const relativeX = position.left - parentRect.left;
+                    const relativeY = position.top - parentRect.top;
+
+                    // Display, position, and set styles for font
+                    tooltipEl.style.opacity = 1;
+                     // Position based on caretX/Y relative to the canvas, adjusted by relative canvas pos
+                    tooltipEl.style.left = relativeX + tooltip.caretX + 'px';
+                     // Position above the caret, accounting for tooltip height
+                    tooltipEl.style.top = relativeY + tooltip.caretY - tooltipEl.offsetHeight - 8 + 'px'; // 8px offset above point
+                 },
+
+
+                 // --- Chart Destruction ---
+                 destroyChart(code) {
+                    if (this.currencyData[code]?.chartInstance) {
+                        // console.log(`[${code.toUpperCase()}] Destroying chart instance.`);
+                        this.currencyData[code].chartInstance.destroy();
+                        this.currencyData[code].chartInstance = null;
+                    }
+                 },
+                 destroyAllCharts() {
+                    console.log("Destroying all chart instances...");
+                    this.trackedCurrencies.forEach(this.destroyChart);
+                 },
+                 // --- Currency Management ---
+                 addCurrency() {
+                    this.inputError = null;
+                    const currencyCode = this.newCurrencyInput.trim().toLowerCase();
+                    if (!currencyCode) { this.inputError = "Please enter a currency code."; return; }
+                    // Use Object.keys for checking existence if availableCurrencies might be empty initially
+                    if (!this.availableCurrencies || !this.availableCurrencies[currencyCode]) { this.inputError = `"${this.newCurrencyInput.toUpperCase()}" is not a valid or available currency code.`; return; }
+                    if (this.trackedCurrencies.includes(currencyCode)) { this.inputError = `"${currencyCode.toUpperCase()}" is already being tracked.`; return; }
+
+                    this.trackedCurrencies.push(currencyCode);
+                    this.saveToLocalStorage();
+                    this.newCurrencyInput = '';
+                    this.currencyData[currencyCode] = 'loading'; // Set loading state immediately
+
+                    // Fetch data for the newly added currency + refresh others
+                    this.fetchAllData(); // fetchAllData will handle the refresh and chart rendering
+                 },
+                 removeCurrency(currencyCode) {
+                    this.destroyChart(currencyCode); // Destroy chart before removing data
+                    this.trackedCurrencies = this.trackedCurrencies.filter(c => c !== currencyCode);
+                    delete this.currencyData[currencyCode]; // Remove reactive data entry
+                    this.saveToLocalStorage();
+                 },
+                 // --- Local Storage ---
+                 saveToLocalStorage() {
+                    try {
+                         localStorage.setItem('trackedCurrenciesINR', JSON.stringify(this.trackedCurrencies));
+                    } catch (e) {
+                         console.error("Error saving to Local Storage:", e);
+                         // Optionally notify user or handle error
+                    }
+                 },
+                 loadFromLocalStorage() {
+                     const saved = localStorage.getItem('trackedCurrenciesINR');
+                     if (saved) {
+                         try {
+                             const parsed = JSON.parse(saved);
+                             // Basic validation: check if it's an array of strings
+                             if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
+                                 this.trackedCurrencies = parsed.map(code => code.toLowerCase()); // Ensure lower case
+                             } else {
+                                 console.warn("Invalid data found in Local Storage for tracked currencies. Resetting.");
+                                 localStorage.removeItem('trackedCurrenciesINR'); // Clear invalid data
+                             }
+                         } catch (e) {
+                             console.error("Error parsing tracked currencies from Local Storage:", e);
+                             localStorage.removeItem('trackedCurrenciesINR'); // Clear corrupted data
+                         }
+                     }
+                 },
+                 // --- Formatting Helpers ---
+                 formatRate(rate) { if (typeof rate !== 'number' || isNaN(rate)) return 'N/A'; const opts = { minimumFractionDigits: rate > 0 && rate < 1 ? 4 : 2, maximumFractionDigits: rate > 0 && rate < 1 ? 4 : 2 }; return rate.toLocaleString('en-IN', opts); },
+                 formatChange(change) { if (typeof change !== 'number' || isNaN(change)) return 'N/A'; const opts = { minimumFractionDigits: Math.abs(change) > 0 && Math.abs(change) < 0.01 ? 4 : 2, maximumFractionDigits: Math.abs(change) > 0 && Math.abs(change) < 0.01 ? 4 : 2, signDisplay: 'always' }; return change.toLocaleString('en-IN', opts); },
+                 formatPercentChange(percent) { if (typeof percent !== 'number' || isNaN(percent) || !isFinite(percent)) return 'N/A'; return `${percent >= 0 ? '+' : ''}${percent.toFixed(2)}%`; },
+                 getChangeClass(change) { if (typeof change !== 'number' || isNaN(change) || change === 0) return 'text-gray-500'; return change > 0 ? 'text-green-600' : 'text-red-600'; },
+                 filterSuggestions() { if (this.inputError) { this.inputError = null; } } // Clear error on input
+            },
+            // --- MOUNTED ---
+            mounted() {
+                console.log("App Mounted");
+                this.loadFromLocalStorage();
+
+                // Initialize reactive data for loaded currencies BEFORE fetching
+                this.trackedCurrencies.forEach(code => {
+                    if (!this.currencyData[code]) {
+                        this.currencyData[code] = 'loading'; // Set initial state
+                    }
+                });
+
+                 // Fetch available currencies first, then fetch rates if needed
+                this.fetchAvailableCurrencies().then(() => {
+                    // Only fetch all data if there are tracked currencies AND the currency list loaded successfully
+                    if (this.availableCurrencies && Object.keys(this.availableCurrencies).length > 0 && this.trackedCurrencies.length > 0) {
+                        this.fetchAllData();
+                    } else if (this.trackedCurrencies.length === 0) {
+                         // If no tracked currencies, ensure loading state is false after fetching available list
+                        this.isLoading = false;
+                    }
+                     // If fetchAvailableCurrencies failed but there are tracked currencies,
+                     // they will remain in 'loading' state or show an error from fetchAllData attempt.
+                     // The inputError from fetchAvailableCurrencies will indicate list loading issues.
+                }).catch(err => {
+                     // This catch is primarily for errors within fetchAvailableCurrencies itself
+                    console.error("Failed during initial setup (fetchAvailableCurrencies):", err);
+                    this.isLoading = false; // Ensure loading stops on critical failure
+                    // InputError should have been set within fetchAvailableCurrencies
+                });
+
+                // Ensure date-fns is loaded
+                 if (typeof window.dateFns === 'undefined') {
+                   console.error("date-fns library failed to load!");
+                   // Handle this critical error, maybe show a global error message
+                 }
+                 // Ensure Chart.js Adapter is loaded
+                 if (typeof Chart.adapters === 'undefined' || typeof Chart.adapters._date === 'undefined') {
+                    console.error("Chart.js date adapter failed to load!");
+                 }
+            }
+        });
+
+        app.mount('#app');
+    </script>
 
     </body>
 </html>

@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- Updated Title -->
+        <title>KonCurr - Currency Converter</title>
+        <!-- Tailwind CSS CDN -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- Vue.js CDN -->
+        <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+        <!-- date-fns v3 CDN build -->
+        <script
+            src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/cdn.min.js"></script>
+        <!-- NOTE: Chart.js and adapter are not needed but kept for consistency -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script
+            src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+        <style>
+        /* Base */
+        body {
+            background-color: #ffffff;
+            color: #000000; /* Default text black */
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        [v-cloak] { display: none; }
+
+        /* Simple pulse */
+        @keyframes pulse-simple {
+            50% { opacity: .6; }
+        }
+        .animate-pulse-simple {
+            animation: pulse-simple 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .placeholder {
+             background-color: #f3f4f6; /* gray-100 */
+             border-radius: 0.25rem; /* rounded-sm */
+        }
+
+        /* Subtle focus ring */
+        input:focus, select:focus, button:focus {
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            box-shadow: 0 0 0 2px #000000; /* Black ring */
+        }
+        /* Remove default button focus outline if using custom ring */
+        button:focus {
+            outline: none;
+        }
+
+        /* KonCurr Title Gradient */
+        .koncurr-title {
+          background: linear-gradient(to right, #4285F4, #9B59B6, #E91E63); /* Example: Blue -> Purple -> Pink */
+          -webkit-background-clip: text; /* Clip background to text (webkit) */
+          background-clip: text;         /* Clip background to text (standard) */
+          color: transparent;           /* Make text transparent */
+          /* display: inline-block; needed if parent isn't text-center or similar */
+        }
+
+        /* Remove spinners from number input */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type=number] {
+          -moz-appearance: textfield; /* Firefox */
+        }
+
+        /* Style select dropdown arrow */
+        select.custom-select {
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236b7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.293%207.293a1%201%200%20011.414%200L10%2010.586l3.293-3.293a1%201%200%20111.414%201.414l-4%204a1%201%200%2001-1.414%200l-4-4a1%201%200%20010-1.414z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.25em 1.25em;
+            padding-right: 2.5rem; /* Make space for arrow */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+    </style>
+    </head>
+    <body>
+
+        <div id="app" v-cloak
+            class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+
+            <!-- Header -->
+            <header class="mb-10 text-center">
+                <h1
+                    class="text-2xl sm:text-3xl font-semibold mb-1 koncurr-title inline-block">KonCurr</h1>
+                <p class="text-sm text-gray-500">Simple Currency Converter</p>
+            </header>
+
+            <!-- Navigation -->
+            <nav class="mb-10">
+                <ul
+                    class="flex justify-center items-center space-x-6 sm:space-x-8 text-sm">
+                    <li>
+                        <a href="index.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Tracker</a>
+                    </li>
+                    <li>
+                        <a href="download.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Download
+                            Data</a>
+                    </li>
+                    <li>
+                        <a href="convert.html"
+                            class="font-medium underline decoration-2 underline-offset-4">Currency
+                            Converter</a> <!-- Underline active -->
+                    </li>
+                    <li>
+                        <a href="compare.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Compare
+                            Currencies</a>
+                    </li>
+                    <li>
+                        <a href="news.html"
+                            class="text-gray-500 hover:underline hover:decoration-1 hover:underline-offset-4 transition-colors">Market
+                            News</a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Converter Form Section -->
+            <section
+                class="max-w-md mx-auto bg-white p-6 md:p-8 border border-gray-100 rounded-lg shadow-sm">
+                <form @submit.prevent="performConversion" class="space-y-5">
+
+                    <!-- Amount Input -->
+                    <div>
+                        <label for="amount"
+                            class="block text-xs font-medium text-gray-600 mb-1">Amount</label>
+                        <input
+                            type="number"
+                            id="amount"
+                            v-model.number="amount"
+                            min="0"
+                            step="any"
+                            placeholder="Enter amount"
+                            class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm placeholder-gray-400"
+                            required />
+                    </div>
+
+                    <!-- Currency Selectors with Swap -->
+                    <div class="flex items-end space-x-3">
+                        <!-- From Currency -->
+                        <div class="flex-1">
+                            <label for="from-currency"
+                                class="block text-xs font-medium text-gray-600 mb-1">From</label>
+                            <select
+                                id="from-currency"
+                                v-model="fromCurrency"
+                                class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white custom-select"
+                                required>
+                                <option v-if="!currenciesLoaded" value
+                                    disabled>Loading...</option>
+                                <option
+                                    v-for="(name, code) in sortedAvailableCurrencies"
+                                    :key="code" :value="code">
+                                    {{ code.toUpperCase() }} - {{ name }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Swap Button -->
+                        <button
+                            type="button"
+                            @click="swapCurrencies"
+                            title="Swap currencies"
+                            class="p-2 mb-px border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 hover:text-black transition-colors"
+                            :disabled="!currenciesLoaded">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                        </button>
+
+                        <!-- To Currency -->
+                        <div class="flex-1">
+                            <label for="to-currency"
+                                class="block text-xs font-medium text-gray-600 mb-1">To</label>
+                            <select
+                                id="to-currency"
+                                v-model="toCurrency"
+                                class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white custom-select"
+                                required>
+                                <option v-if="!currenciesLoaded" value
+                                    disabled>Loading...</option>
+                                <option
+                                    v-for="(name, code) in sortedAvailableCurrencies"
+                                    :key="code" :value="code">
+                                    {{ code.toUpperCase() }} - {{ name }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Date Input -->
+                    <div>
+                        <label for="conversion-date"
+                            class="block text-xs font-medium text-gray-600 mb-1">Conversion
+                            Date</label>
+                        <input
+                            type="date"
+                            id="conversion-date"
+                            v-model="conversionDate"
+                            :min="minDate"
+                            :max="maxDate"
+                            class="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm placeholder-gray-400"
+                            required />
+                        <p class="text-xs text-gray-500 mt-1">Using exchange
+                            rate from this date.</p>
+                    </div>
+
+                    <!-- Result Display -->
+                    <div class="pt-3 min-h-[6rem]">
+                        <!-- Added min-height for layout stability -->
+                        <div v-if="isLoading" class="text-center py-4">
+                            <svg
+                                class="animate-spin h-5 w-5 text-gray-500 mx-auto"
+                                xmlns="http://www.w3.org/2000/svg" fill="none"
+                                viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12"
+                                    r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p class="text-xs text-gray-500 mt-1">Fetching
+                                rate...</p>
+                        </div>
+                        <div v-else-if="errorMessage"
+                            class="text-center py-4 px-3 bg-red-50 border border-red-200 rounded-md">
+                            <p
+                                class="text-sm text-red-700 font-medium">Error</p>
+                            <p class="text-xs text-red-600 mt-1">{{ errorMessage
+                                }}</p>
+                        </div>
+                        <div v-else-if="convertedAmount !== null && amount > 0"
+                            class="text-center py-4 px-3 bg-green-50 border border-green-200 rounded-md">
+                            <p class="text-sm text-gray-600">
+                                {{ formatCurrency(amount, fromCurrency) }} {{
+                                fromCurrency.toUpperCase() }} =
+                            </p>
+                            <p class="text-2xl font-semibold text-black mt-1">
+                                {{ formatCurrency(convertedAmount, toCurrency)
+                                }} {{ toCurrency.toUpperCase() }}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1.5">
+                                Rate on {{ rateDate }}: 1 {{
+                                fromCurrency.toUpperCase() }} = {{
+                                formatRate(rateUsed) }} {{
+                                toCurrency.toUpperCase() }}
+                            </p>
+                        </div>
+                        <div
+                            v-else-if="amount <= 0 && fromCurrency && toCurrency"
+                            class="text-center py-4">
+                            <p class="text-sm text-gray-500">Enter an amount to
+                                convert.</p>
+                        </div>
+                    </div>
+
+                    <!-- Optional: Manual Convert Button (if not using watchers) -->
+                    <!--
+                 <div class="pt-2">
+                     <button
+                         type="submit"
+                         :disabled="isLoading || !isFormValid"
+                         class="w-full px-4 py-2 bg-black text-white font-medium rounded-md hover:bg-gray-800 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                     >
+                         <span>Convert</span>
+                     </button>
+                 </div>
+                 -->
+
+                </form>
+            </section>
+
+            <!-- Footer -->
+            <footer
+                class="text-center mt-12 sm:mt-16 pt-6 border-t border-gray-100">
+                <p class="text-xs text-gray-400">Data via <a
+                        href="https://github.com/fawazahmed0/currency-api"
+                        target="_blank" rel="noopener noreferrer"
+                        class="hover:underline">fawazahmed0/currency-api</a>.</p>
+            </footer>
+        </div>
+
+        <script>
+        const { createApp, ref, reactive, onMounted, computed, watch, nextTick } = Vue; // Added watch
+        const { format: formatDate, parseISO, subDays, isValid } = dateFns;
+
+        const app = createApp({
+            // --- DATA ---
+            setup() {
+                const availableCurrencies = ref({});
+                const isLoading = ref(false);
+                const errorMessage = ref(null);
+                const apiBaseUrl = 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api';
+                const apiVersion = 'v1';
+
+                // Form state
+                const amount = ref(1); // Default amount
+                const fromCurrency = ref('usd');
+                const toCurrency = ref('inr');
+                const minDate = ref('2024-04-01');
+                const maxDate = ref(formatDate(subDays(new Date(), 1), 'yyyy-MM-dd'));
+                const conversionDate = ref(maxDate.value); // Default to latest possible date
+
+                // Result state
+                const convertedAmount = ref(null);
+                const rateUsed = ref(null);
+                const rateDate = ref(null); // Actual date of the rate fetched
+
+                // --- COMPUTED ---
+                const currenciesLoaded = computed(() => Object.keys(availableCurrencies.value).length > 0);
+
+                const sortedAvailableCurrencies = computed(() => {
+                    return Object.fromEntries(
+                        Object.entries(availableCurrencies.value).sort(([, nameA], [, nameB]) => nameA.localeCompare(nameB))
+                    );
+                });
+
+                const isFormValid = computed(() => {
+                    return amount.value !== null &&
+                           amount.value >= 0 &&
+                           fromCurrency.value &&
+                           toCurrency.value &&
+                           conversionDate.value &&
+                           isValid(parseISO(conversionDate.value)) &&
+                           currenciesLoaded.value;
+                });
+
+                // --- METHODS ---
+                const fetchAvailableCurrencies = async () => {
+                    console.log("Fetching available currencies...");
+                    // Clear error only if it's about currency list loading
+                     if (errorMessage.value?.includes('Could not load currency list')) {
+                         errorMessage.value = null;
+                     }
+                    try {
+                        const url = `${apiBaseUrl}@latest/${apiVersion}/currencies.min.json`;
+                        const response = await fetch(url);
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        availableCurrencies.value = await response.json();
+                        console.log("Available currencies loaded.");
+                        // Set defaults AFTER currencies are loaded if they weren't valid initially
+                        if (!availableCurrencies.value[fromCurrency.value]) fromCurrency.value = 'usd';
+                        if (!availableCurrencies.value[toCurrency.value]) toCurrency.value = 'inr';
+                         // Trigger initial conversion if defaults are valid now
+                         if (isFormValid.value) {
+                            await performConversion();
+                         }
+
+                    } catch (error) {
+                        console.error("Error fetching available currencies:", error);
+                        errorMessage.value = "Could not load currency list. Please refresh.";
+                        // Clear dependent fields if list fails
+                        availableCurrencies.value = {};
+                        convertedAmount.value = null;
+                    }
+                };
+
+                 const fetchConversionRate = async (date, fromCode, toCode) => {
+                    // Ensure codes are lowercase for the API
+                    const fromLower = fromCode.toLowerCase();
+                    const toLower = toCode.toLowerCase();
+                    const url = `${apiBaseUrl}@${date}/${apiVersion}/currencies/${fromLower}.min.json`;
+
+                    console.log(`Fetching rate: ${fromLower.toUpperCase()} to ${toLower.toUpperCase()} for ${date}`);
+
+                    try {
+                        const response = await fetch(url);
+                        if (!response.ok) {
+                            if (response.status === 404) {
+                                throw new Error(`Exchange rate data not found for ${fromLower.toUpperCase()} on ${date}.`);
+                            }
+                            throw new Error(`Failed to fetch rate (HTTP ${response.status})`);
+                        }
+                        const data = await response.json();
+
+                        // Verify the date in the response matches the requested date
+                        if (data.date !== date) {
+                            console.warn(`API returned data for ${data.date} instead of requested ${date}.`);
+                            // Decide how strict to be. Maybe throw an error or use the returned date?
+                            // Throwing error for now to be precise.
+                            throw new Error(`API returned rate for ${data.date}, not the requested ${date}.`);
+                        }
+
+                        const rate = data[fromLower]?.[toLower];
+                        if (rate === undefined) {
+                            throw new Error(`Rate from ${fromLower.toUpperCase()} to ${toLower.toUpperCase()} not available in the API response for ${date}.`);
+                        }
+
+                        return { rate: Number(rate), date: data.date, error: null };
+                    } catch (error) {
+                        console.error(`Error fetching conversion rate:`, error);
+                        return { rate: null, date: null, error: error.message || 'An unknown error occurred fetching the rate.' };
+                    }
+                 };
+
+
+                const performConversion = async () => {
+                    // Don't proceed if basic form elements aren't ready or amount is invalid
+                    if (!isFormValid.value || amount.value < 0) {
+                        convertedAmount.value = null; // Clear previous result if form becomes invalid
+                        rateUsed.value = null;
+                        rateDate.value = null;
+                        // Optionally clear error message if invalidity is just missing input
+                        if (!amount.value || !fromCurrency.value || !toCurrency.value || !conversionDate.value) {
+                            errorMessage.value = null;
+                        }
+                        return;
+                    }
+                     // Handle self-conversion
+                     if (fromCurrency.value === toCurrency.value) {
+                         convertedAmount.value = amount.value;
+                         rateUsed.value = 1;
+                         rateDate.value = conversionDate.value;
+                         errorMessage.value = null;
+                         isLoading.value = false;
+                         return;
+                     }
+
+
+                    isLoading.value = true;
+                    errorMessage.value = null;
+                    convertedAmount.value = null; // Clear previous result before fetching new one
+                    rateUsed.value = null;
+                    rateDate.value = null;
+
+                    await nextTick(); // Allow UI to update loading state
+
+                    const result = await fetchConversionRate(conversionDate.value, fromCurrency.value, toCurrency.value);
+
+                    if (result.error) {
+                        errorMessage.value = result.error;
+                    } else {
+                        rateUsed.value = result.rate;
+                        rateDate.value = result.date; // Use the date confirmed by the API
+                        convertedAmount.value = amount.value * result.rate;
+                    }
+
+                    isLoading.value = false;
+                };
+
+                const swapCurrencies = () => {
+                    if (!currenciesLoaded.value) return; // Prevent swapping if lists aren't loaded
+                    const temp = fromCurrency.value;
+                    fromCurrency.value = toCurrency.value;
+                    toCurrency.value = temp;
+                    // performConversion will be triggered by the watcher
+                };
+
+                // Formatting Helpers (adjust precision as needed)
+                const formatCurrency = (value, currencyCode) => {
+                    if (typeof value !== 'number' || isNaN(value)) return '';
+                    // Basic formatting, consider using Intl.NumberFormat for more robust locale support if needed
+                    const options = {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2, // Adjust as needed, maybe more for crypto?
+                    };
+                     // A simple heuristic for smaller value currencies often needing more precision
+                     if (value > 0 && Math.abs(value) < 0.01) {
+                         options.maximumFractionDigits = 4;
+                         options.minimumFractionDigits = 4;
+                     } else if (value > 0 && Math.abs(value) < 1) {
+                          options.maximumFractionDigits = 3;
+                          options.minimumFractionDigits = 3;
+                     }
+
+                    return value.toLocaleString('en-IN', options); // Use 'en-IN' or appropriate locale
+                };
+                 const formatRate = (value) => {
+                     if (typeof value !== 'number' || isNaN(value)) return 'N/A';
+                     // Rates often need more precision
+                     const options = {
+                         minimumFractionDigits: 4,
+                         maximumFractionDigits: 6,
+                     };
+                     return value.toLocaleString('en-IN', options);
+                 };
+
+
+                // --- WATCHERS ---
+                // Watch for changes in any input and trigger conversion
+                watch([amount, fromCurrency, toCurrency, conversionDate], async (newValues, oldValues) => {
+                    // Check if the component is fully initialized and form is valid before converting
+                    if (currenciesLoaded.value && isFormValid.value) {
+                        await performConversion();
+                    } else if (currenciesLoaded.value && amount.value >= 0 && fromCurrency.value && toCurrency.value && conversionDate.value) {
+                        // Handle case where form becomes valid (e.g., user selects final currency)
+                         await performConversion();
+                    } else {
+                         // If form becomes invalid (e.g., user clears amount), clear results
+                         convertedAmount.value = null;
+                         rateUsed.value = null;
+                         rateDate.value = null;
+                         // Keep error message if it was due to API failure, clear if just invalid input
+                         if (errorMessage.value && !errorMessage.value.includes('rate')) {
+                             // errorMessage.value = null; // Maybe too aggressive?
+                         }
+                    }
+                }, { immediate: false }); // Don't run immediately on mount, wait for fetchAvailableCurrencies
+
+
+                // --- MOUNTED ---
+                onMounted(async () => {
+                    console.log("Converter App Mounted");
+                    // Ensure date-fns is loaded
+                    if (typeof dateFns === 'undefined' || typeof dateFns.format === 'undefined') {
+                       console.error("date-fns library failed to load!");
+                       errorMessage.value = "Date library failed to load. Please refresh.";
+                       return;
+                    }
+                    // Set initial date values correctly
+                    maxDate.value = formatDate(subDays(new Date(), 1), 'yyyy-MM-dd');
+                    conversionDate.value = maxDate.value; // Ensure default is set
+
+                    await fetchAvailableCurrencies();
+                    // Initial conversion is now handled within fetchAvailableCurrencies callback
+                });
+
+                return {
+                    availableCurrencies,
+                    isLoading,
+                    errorMessage,
+                    amount,
+                    fromCurrency,
+                    toCurrency,
+                    minDate,
+                    maxDate,
+                    conversionDate,
+                    convertedAmount,
+                    rateUsed,
+                    rateDate,
+                    currenciesLoaded,
+                    sortedAvailableCurrencies,
+                    isFormValid,
+                    performConversion, // Expose if using a manual button
+                    swapCurrencies,
+                    formatCurrency,
+                    formatRate
+                };
+            }
+        });
+
+        app.mount('#app');
+    </script>
+
+    </body>
+</html>
